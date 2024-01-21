@@ -7,17 +7,17 @@
   "PHD_wiki_1000w": {
     "model_name": "chatgpt",
     "task": "text_generation",
-    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+    "prompt": "Please write a brief Wikipedia for {entity} under 100 words."
   },
   "PHD_wiki_10w": {
     "model_name": "chatgpt",
     "task": "text_generation",
-    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+    "prompt": "Please write a brief Wikipedia for {entity} under 100 words."
   },
   "PHD_wiki_1y": {
     "model_name": "chatgpt",
     "task": "text_generation",
-    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+    "prompt": "Please write a brief Wikipedia for {entity} under 100 words."
   },
   "BAMBOO_abshallu_4k": {
     "model_name": "chatgpt",

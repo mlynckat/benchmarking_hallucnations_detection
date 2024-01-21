@@ -17,26 +17,28 @@ with open("config.json") as json_file:
 
 # Define the SelfCheckGPT method
 def apply_selfcheckgpt(row, method, benchmark, task="hallucination"):
-    if benchmark == "selfcheckgpt":
-        query = config[benchmark]['prompt'].format(wiki_bio.loc[row['query']]['input_text']['context'])
+    print(row)
+    print(row['query'])
+    if benchmark == "SelfCheckGPT":
+        query = config[benchmark]['prompt'].format(query=wiki_bio.loc[row['query']]['input_text']['context'])
 
     elif "PHD" in benchmark:
-        query = config[benchmark]['prompt'].format(row['query'])
+        query = config[benchmark]['prompt'].format(entity=row['query'])
     elif "BAMBOO" in benchmark:
-        query = config[benchmark]['prompt'].format(row['reference'])
+        query = config[benchmark]['prompt'].format(passage=row['reference'])
     elif "HaluEval" in benchmark:
         if "dialogue_data" in benchmark:
             query = config[benchmark]['prompt'].format(message_history=row['query'], knowledge=row['reference'])
         elif "qa_data" in benchmark:
             query = config[benchmark]['prompt'].format(question=row['query'], passage=row['reference'])
         elif "summarization" in benchmark:
-            query = config[benchmark]['prompt'].format(row['reference'])
+            query = config[benchmark]['prompt'].format(passage=row['reference'])
         elif "general_data" in benchmark:
-            query = config[benchmark]['prompt'].format(row['query'])
+            query = config[benchmark]['prompt'].format(user_query=row['query'])
         else:
             raise ValueError("Unknown HaluEval subset")
     elif "FELM" in benchmark:
-        query = config[benchmark]['prompt'].format(row['query'])
+        query = config[benchmark]['prompt'].format(prompt=row['query'])
     else:
         raise ValueError("Unknown benchmark")
     model_name = config[benchmark]['model_name']
@@ -74,11 +76,11 @@ def apply_lm_vs_lm(row, method, benchmark):
 for dataset_name in ["selfcheckgpt", "phd", "felm"]:
     data = load_data_by_name(dataset_name)
 
-    for current_data_name in data:
+    for current_data_name in data.keys():
 
         output_dir = f"outputs/{current_data_name}"
         if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+            os.makedirs(output_dir, exist_ok=True)
 
         current_data = data[current_data_name]
 
@@ -86,9 +88,9 @@ for dataset_name in ["selfcheckgpt", "phd", "felm"]:
         #updated_data = pd.DataFrame()
         method = SelfCheckGPT()
         # Apply the function to each row in the 'current_data' dataframe
-        updated_data = current_data.loc[0:5].apply(lambda row: apply_selfcheckgpt(row, method, dataset_name), axis=1).reset_index(drop=True)
+        updated_data = current_data.loc[0:5].apply(lambda row: apply_selfcheckgpt(row, method, current_data_name), axis=1).reset_index(drop=True)
         updated_data.to_csv(os.path.join(output_dir, "SelfCheckGPT_updated_data.csv"), encoding="utf-8", index=False)
 
         lmvslm = LMvsLM()
-        updated_data = current_data.loc[0:5].apply(lambda row: apply_lm_vs_lm(row, lmvslm, dataset_name), axis=1).reset_index(drop=True)
+        updated_data = current_data.loc[0:5].apply(lambda row: apply_lm_vs_lm(row, lmvslm, current_data_name), axis=1).reset_index(drop=True)
         updated_data.to_csv(os.path.join(output_dir, "LMvsLM_updated_data.csv"), encoding="utf-8", index=False)
