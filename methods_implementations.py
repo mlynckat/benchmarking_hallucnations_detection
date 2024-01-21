@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
-
+print(torch.cuda.is_available())
 
 class Methods:
     def __init__(self):
@@ -24,7 +24,7 @@ class SelfCheckGPT(Methods):
     def __init__(self):
         super().__init__()
         self.nlp = spacy.load("en_core_web_sm")
-        device = torch.device("cpu") #"cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #"cuda" if torch.cuda.is_available() else "cpu"
         self.selfcheck_mqag = SelfCheckMQAG(device=device)  # set device to 'cuda' if GPU is available
         self.selfcheck_bertscore = SelfCheckBERTScore(rescale_with_baseline=True)
         self.selfcheck_ngram = SelfCheckNgram(n=1)  # n=1 means Unigram, n=2 means Bigram, etc.
