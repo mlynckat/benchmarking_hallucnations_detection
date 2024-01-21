@@ -1,0 +1,88 @@
+{
+  "SelfCheckGPT": {
+    "model_name": "gpt3",
+    "task": "text_generation",
+    "prompt": "This is a Wikipedia passage about {query}: "
+  },
+  "PHD_wiki_1000w": {
+    "model_name": "chatgpt",
+    "task": "text_generation",
+    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+  },
+  "PHD_wiki_10w": {
+    "model_name": "chatgpt",
+    "task": "text_generation",
+    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+  },
+  "PHD_wiki_1y": {
+    "model_name": "chatgpt",
+    "task": "text_generation",
+    "prompt": "Please write a brief Wikipedia for {Entity} under 100 words."
+  },
+  "BAMBOO_abshallu_4k": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
+  "BAMBOO_abshallu_16k": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
+  "BAMBOO_senhallu_4k": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
+  "BAMBOO_senhallu_16k": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
+  "HaluEval_dialogue_data": {
+    "model_name": "chatgpt",
+    "task": "dialogue",
+    "prompt": "Please continue the following conversation using the following knowledge. \nConversation: {message_history}. \nKnowledge: {knowledge}."
+  },
+  "HaluEval_general_data": {
+    "model_name": "chatgpt",
+    "task": "question_answering",
+    "prompt": "{user_query}"
+  },
+  "HaluEval_qa_data": {
+    "model_name": "chatgpt",
+    "task": "question_answering",
+    "prompt": "Please answer the following question based on the following passage. \nQuestion:{question}. \nPassage: {passage}."
+  },
+  "HaluEval_summarization_data": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
+  "FELM_math": {
+    "model_name": "chatgpt",
+    "task": "question_answering",
+    "prompt": "{prompt}"
+  },
+    "FELM_science": {
+        "model_name": "chatgpt",
+        "task": "question_answering",
+        "prompt": "{prompt}"
+    },
+    "FELM_wk": {
+        "model_name": "chatgpt",
+        "task": "question_answering",
+        "prompt": "{prompt}"
+    },
+    "FELM_writing_rec": {
+        "model_name": "chatgpt",
+        "task": "question_answering",
+        "prompt": "{prompt}"
+    },
+    "FELM_reasoning": {
+        "model_name": "chatgpt",
+        "task": "question_answering",
+        "prompt": "{prompt}"
+    }
+
+}
