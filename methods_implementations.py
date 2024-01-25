@@ -1,14 +1,32 @@
-import pandas as pd
-from selfcheckgpt.modeling_selfcheck import SelfCheckMQAG, SelfCheckBERTScore, SelfCheckNgram, SelfCheckNLI
-from methods.LMvsLM.LM_vs_LM import *
-import torch
-import spacy
 import os
+
 import openai
+import spacy
+import torch
 from dotenv import load_dotenv
+from perplexity import Perplexity
+from selfcheckgpt.modeling_selfcheck import SelfCheckMQAG, SelfCheckBERTScore, SelfCheckNgram, SelfCheckNLI
+
+from methods.AlignScore.alignscore import AlignScore
+from methods.LMvsLM.LM_vs_LM import *
+from methods.sac3 import paraphraser
+from methods.sac3.consistency_checker import SemanticConsistnecyCheck
+from methods.sac3.evaluator import Evaluate
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
 
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 print(torch.cuda.is_available())
 
 class Methods:
@@ -30,9 +48,11 @@ class SelfCheckGPT(Methods):
         self.selfcheck_ngram = SelfCheckNgram(n=1)  # n=1 means Unigram, n=2 means Bigram, etc.
         self.selfcheck_nli = SelfCheckNLI(device="cuda" if torch.cuda.is_available() else "cpu")
         self.client = openai.OpenAI()
+        self.client_prompting = openai.OpenAI()
 
-    def generate_additional_samples(self, query, model_name, num_samples=20):
+    def generate_additional_samples(self, query, model_name, num_samples=10):
         samples = []
+        cost = 0
         if model_name == "gpt3":
             model = "gpt-3.5-turbo-instruct"
             for i in range(num_samples):
@@ -42,6 +62,7 @@ class SelfCheckGPT(Methods):
                     temperature=1,
                     max_tokens=100)
                 samples.append(response.choices[0].text)
+                cost += response.usage.total_tokens
         elif model_name == "gpt4":
             model = "gpt-4-1106-preview"
             for i in range(num_samples):
@@ -53,8 +74,9 @@ class SelfCheckGPT(Methods):
                     temperature=1,
                     max_tokens=100)
                 samples.append(response.choices[0].message.content)
+                cost += response.usage.total_tokens
         elif model_name == "chatgpt":
-            model = "gpt3.5-turbo-1106"
+            model = "gpt-3.5-turbo-1106"
             for i in range(num_samples):
                 response = self.client.chat.completions.create(
                     model=model,
@@ -64,16 +86,86 @@ class SelfCheckGPT(Methods):
                     temperature=1,
                     max_tokens=100)
                 samples.append(response.choices[0].message.content)
+                cost += response.usage.total_tokens
+        elif model_name == "perplexityAI":
+            for i in range(num_samples):
+                perplexity = Perplexity()
+                answer = perplexity.search(query)
+                for a in answer:
+                    if a["status"] == "completed":
+                        samples.append(a["answer"])
+                perplexity.close()
+                cost = 0
+        elif model_name == "llama":
+            for i in range(num_samples):
+                client = openai.OpenAI(api_key=TOGETHER_API_KEY,
+                                base_url='https://api.together.xyz',
+                                )
+
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an AI assistant",
+                        },
+                        {
+                            "role": "user",
+                            "content": query,
+                        }
+                    ],
+                    model="meta-llama/Llama-2-70b-chat-hf",
+                    max_tokens=100,
+                    temperature=1,
+                )
+                samples.append(chat_completion.choices[0].message.content)
+                cost += chat_completion.usage.total_tokens
         else:
             raise ValueError("Invalid model_name")
 
-        return samples
+        return samples, cost
+
+    def prompting(self, sentences, samples):
+        predictions = []
+        template = """
+                    Context: {context}
+                    Sentence: {sentence}
+                    Is the sentence supported by the context above?
+                    Answer Yes or No:"""
+        cost = 0
+        for sent in sentences:
+            predictions_per_sentence = []
+
+            for sample in samples[0:3]:
+
+                response = self.client_prompting.chat.completions.create(
+                    model="gpt-3.5-turbo-1106",
+                    messages=[
+                        {"role": "user", "content": template.format(context=sample, sentence=sent)},
+                    ],
+                    temperature=0)
+                cost += response.usage.total_tokens
+                decision = response.choices[0].message.content.split()[0]
+                if decision.lower() == "yes":
+                    predictions_per_sentence.append(0)
+                elif decision.lower() == "no":
+                    predictions_per_sentence.append(1)
+                else:
+                    predictions_per_sentence.append(0.5)
+                    logging.info(f"For sentence {sent} the response is {response.choices[0].message.content}")
+            averaged_per_sentence = sum(predictions_per_sentence) / len(predictions_per_sentence)
+            predictions.append(averaged_per_sentence)
+
+        return predictions, cost
 
     def make_predictions(self, row, query, model_name=None):
+        logging.info(f"Query: {query}")
+        logging.info(f"Model name: {model_name}")
+        logging.info(f"Generations: {row['generations']}")
         output_predictions = row.copy(deep=True)
         # LLM's text (e.g. GPT-3 response) to be evaluated at the sentence level  & Split it into sentences
         sentences = [sent.text.strip() for sent in self.nlp(row['generations']).sents]  # spacy sentence tokenization
-        additional_samples = self.generate_additional_samples(query, model_name)
+        additional_samples, costs = self.generate_additional_samples(query, model_name)
+        logging.info(f"Additional samples: {additional_samples}")
         output_predictions[f'additional_samples_{model_name}'] = additional_samples
         # SelfCheck-MQAG: Score for each sentence where value is in [0.0, 1.0] and high value means non-factual
         # Additional params for each scoring_method:
@@ -119,6 +211,14 @@ class SelfCheckGPT(Methods):
         output_predictions['SefCheckGPT_sent_nli'] = sent_scores_nli
         output_predictions['SefCheckGPT_nli'] = sum(sent_scores_nli) / len(sent_scores_nli)
 
+        # --------------------------------------------------------------------------------------------------------------- #
+
+        sent_scores_prompting, costs_prompting = self.prompting(sentences, additional_samples)
+        output_predictions['SefCheckGPT_sent_prompting'] = sent_scores_prompting
+        output_predictions['SefCheckGPT_prompting'] = sum(sent_scores_prompting) / len(sent_scores_prompting)
+        output_predictions['additional_samples_costs'] = costs
+        output_predictions['prompting_costs'] = costs_prompting
+
         return output_predictions
 
 class LMvsLM(Methods):
@@ -126,8 +226,8 @@ class LMvsLM(Methods):
         super().__init__()
 
 
-    def detect_hal(self, query, claim):
-        examiner = Examiner(claim)
+    def detect_hal(self, query, claim, task):
+        examiner = Examiner(claim, task)
         examinee = Suspect(query, claim)
         question = examiner.Setup()
         trigger = True
@@ -141,17 +241,22 @@ class LMvsLM(Methods):
                 trigger = False
             else:
                 question = examiner.ask_continue()
+        costs = examinee.cost + examiner.cost
 
-        return lawyer_history[-1]['content'], lawyer_history
+        return lawyer_history[-1]['content'], lawyer_history, costs
 
 
-    def make_predictions(self, row, query, model_name=None):
+    def make_predictions(self, row, query, model_name=None, task=None):
+        logging.info(f"Query: {query}")
+        logging.info(f"Generations: {row['generations']}")
+        logging.info(f"Task: {task}")
+
         output_predictions = row.copy(deep=True)
 
         all_history = []
 
 
-        label_content, history = self.detect_hal(query, row['generations'])
+        label_content, history, costs = self.detect_hal(query, row['generations'], task)
         if 'correct' in label_content.lower() and 'incorrect' not in label_content.lower():
             label = 'factual'
         elif 'incorrect' in label_content.lower():
@@ -163,6 +268,69 @@ class LMvsLM(Methods):
 
         output_predictions['LMvsLM_label'] = label
         output_predictions['LMvsLM_history'] = all_history
+        output_predictions['LMvsLM_costs'] = costs
+
+        return output_predictions
+
+class SAC3(Methods):
+    def __init__(self):
+        super().__init__()
+
+
+    def make_predictions(self, row, query, model_name=None, task=None):
+        output_predictions = row.copy(deep=True)
+
+        # input information
+        question = query
+        target_answer = row['generations']
+
+        # question perturbation
+        gen_question = paraphraser.paraphrase(question, number=3, model='gpt-3.5-turbo', temperature=1.0)
+
+        # llm evaluation
+        llm_evaluate = Evaluate(model='gpt-3.5-turbo')
+        self_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+
+        # consistency check
+        scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+
+        sc2_score, sc2_vote = scc.score_scc(question, target_answer, candidate_answers=self_responses, temperature=0.0)
+        print(sc2_score, sc2_vote)
+
+        sac3_q_score, sac3_q_vote = scc.score_scc(question, target_answer, candidate_answers=perb_responses,
+                                                  temperature=0.0)
+        print(sac3_q_score, sac3_q_vote)
+
+        output_predictions['sc2_score'] = sc2_score
+        output_predictions['sc2_vote'] = sc2_vote
+        output_predictions['sac3_q_score'] = sac3_q_score
+        output_predictions['sac3_q_vote'] = sac3_q_vote
+
+        return output_predictions
+
+class AlignScorer(Methods):
+    def __init__(self):
+        super().__init__()
+
+    def make_predictions(self, row, query, model_name=None):
+        logging.info(f"Query: {query}")
+        logging.info(f"Generations: {row['generations']}")
+        logging.info(f"References: {row['references']}")
+
+        output_predictions = row.copy(deep=True)
+
+        scorer = AlignScore(model='roberta-base', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-base.ckpt',
+                            evaluation_mode='nli_sp')
+        score = scorer.score(contexts=[row['references']], claims=['generations'])
+
+        output_predictions['AlignScore-base'] = score[0]
+
+        scorer = AlignScore(model='roberta-large', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-large.ckpt',
+                            evaluation_mode='nli_sp')
+        score = scorer.score(contexts=[row['reference']], claims=['generations'])
+
+        output_predictions['AlignScore-large'] = score[0]
 
         return output_predictions
 

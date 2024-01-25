@@ -46,7 +46,7 @@
   },
   "HaluEval_general_data": {
     "model_name": "chatgpt",
-    "task": "question_answering",
+    "task": "general_qa",
     "prompt": "{user_query}"
   },
   "HaluEval_qa_data": {
@@ -61,28 +61,72 @@
   },
   "FELM_math": {
     "model_name": "chatgpt",
-    "task": "question_answering",
+    "task": "general_qa",
     "prompt": "{prompt}"
   },
-    "FELM_science": {
-        "model_name": "chatgpt",
-        "task": "question_answering",
-        "prompt": "{prompt}"
-    },
-    "FELM_wk": {
-        "model_name": "chatgpt",
-        "task": "question_answering",
-        "prompt": "{prompt}"
-    },
-    "FELM_writing_rec": {
-        "model_name": "chatgpt",
-        "task": "question_answering",
-        "prompt": "{prompt}"
-    },
-    "FELM_reasoning": {
-        "model_name": "chatgpt",
-        "task": "question_answering",
-        "prompt": "{prompt}"
-    }
-
+  "FELM_science": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FELM_wk": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FELM_writing_rec": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FELM_reasoning": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FactScore_ChatGPT": {
+    "model_name": "chatgpt",
+    "task": "text_generation",
+    "prompt": "{prompt}"
+  },
+  "FactScore_InstructGPT": {
+    "model_name": "gpt3",
+    "task": "text_generation",
+    "prompt": "{prompt}"
+  },
+  "FactScore_PerplexityAI": {
+    "model_name": "perplexityAI",
+    "task": "text_generation",
+    "prompt": "{prompt}"
+  },
+  "FAVA_chatgpt": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FAVA_llama": {
+    "model_name": "llama",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FAVA_gpt3": {
+    "model_name": "gpt3",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FacTool_knowledge_qa": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FacTool_math": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  },
+  "FacTool_scientific": {
+    "model_name": "chatgpt",
+    "task": "general_qa",
+    "prompt": "{prompt}"
+  }
 }

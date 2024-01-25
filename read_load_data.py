@@ -1,15 +1,49 @@
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
 import pandas as pd
+import requests
+import wikipedia
+from bs4 import BeautifulSoup
 from datasets import load_dataset
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler("app.log"),
+        logging.StreamHandler()
+    ]
+)
 
 
 class ReadData:
     def __init__(self, data_path=None):
         self.data_path = data_path
         self.data = None
+
+    def retrieve_wiki_article(self, url):
+
+        r = requests.get(url)
+        # Get body content
+        soup = BeautifulSoup(r.text, 'html.parser')
+        content = soup.find('div', {'id': 'mw-content-text'})
+        paragraphs = content.find_all(['p', 'h2', 'li'])
+        # Initialize variable
+        output = []
+
+        # Iterate through all elements
+        for element in paragraphs:
+            if "References" in element.text:
+                break
+            else:
+                output.append(element.text.replace("[edit]", "\n"))
+        #print(" ".join(output))
+        return " \n".join(output)
 
     def load_jsonl_data(self):
         """
@@ -31,8 +65,6 @@ class ReadData:
         else:
             dataset = load_dataset(self.data_path)
 
-        print(dataset)
-
         self.data = pd.DataFrame(dataset[split])
 
     def read_data(self):
@@ -51,10 +83,23 @@ class ReadData:
             self.correct_answer_col: "correct_answer"
         }
 
+        #for column_name in self.data.columns:
+        #    if column_name not in column_mapping.keys():
+        #        print(f"None -> {column_name}: {type(self.data.loc[0, column_name])}")
+
         for old_name, new_name in column_mapping.items():
             if new_name is not None:
+                #if old_name is not None:
+                #    print(f"{new_name} -> {old_name}: {type(self.data.loc[0, old_name])}")
+                #else:
+                #    print(f"{new_name} -> {old_name}:{None}")
                 self.data.rename(columns={old_name: new_name}, inplace=True)
+
+
         assert len(self.data.columns) == len(set(self.data.columns)), "Duplicate column names detected."
+        #for col in self.data.columns:
+        #    print(col)
+        #    print(self.data.loc[0:3, col])
         return self.data
 
 
@@ -65,11 +110,20 @@ class SelfCheckGPTData(ReadData):
         self.references_col = 'wiki_bio_text'
         self.generations_col = 'gpt3_text'
         self.labels_col = 'annotation'
-        self.query_col = 'wiki_bio_test_idx'
+        self.query_col = 'wiki_bio_test_entity'
         self.correct_answer_col = 'gpt3_text_samples'
+
+        dataset = load_dataset("wiki_bio")
+        wiki_bio = dataset["test"]
+        self.wiki_bio = pd.DataFrame(wiki_bio)
+
+    def get_entity_name(self, idx):
+        entity_name = self.wiki_bio.loc[idx]['input_text']['context']
+        return entity_name
 
     def load(self):
         self.load_hf_data("evaluation")
+        self.data["wiki_bio_test_entity"] = self.data["wiki_bio_test_idx"].apply(lambda x: self.get_entity_name(x))
 
 
 class HaluEvalData(ReadData):
@@ -96,13 +150,13 @@ class HaluEvalData(ReadData):
                 "query": None,
                 "generations": "hallucinated_summary",
                 "labels": None,
-                "correct_answer": "right_summary ",
+                "correct_answer": "right_summary",
             },
             "general_data": {
                 "reference": None,
                 "query": "user_query",
                 "generations": "chatgpt_response",
-                "labels": "hallucination_label",
+                "labels": "hallucination",
                 "correct_answer": None,
             }
 
@@ -135,7 +189,7 @@ class FELMData(ReadData):
     def __init__(self, data_path=None):
         super().__init__(data_path)
         self.references_col = None
-        self.generations_col = 'segmented_response'
+        self.generations_col = 'response'
         self.labels_col = 'labels'
         self.query_col = 'prompt'
         self.correct_answer_col = 'comment'
@@ -147,29 +201,88 @@ class FELMData(ReadData):
 class PHDData(ReadData):
     def __init__(self, data_path=None):
         super().__init__(data_path)
-        self.references_col = None
+        self.references_col = 'entity_content'
         self.generations_col = 'AI'
         self.labels_col = 'label'
         self.query_col = 'entity'
-        self.correct_answer_col = 'comment'
+        self.correct_answer_col = None
+
+    def clean_text(self, text):
+        # Remove multiple spaces and newlines
+        cleaned_text = re.sub(r'\s+', ' ', text)
+
+        return cleaned_text
 
     def load(self, subset):
 
         with open(self.data_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         self.data = pd.DataFrame(data[subset])
+        self.data["entity_content"] = self.data["url"].apply(lambda x: self.retrieve_wiki_article(x))
+        for ind in range(5):
+            print(self.data.loc[ind, "entity_content"])
+
 
 class FactScoreData(ReadData):
     def __init__(self, data_path=None):
         super().__init__(data_path)
-        self.references_col = None
+        self.references_col = 'article'
         self.generations_col = 'output'
-        self.labels_col = 'label'
+        self.labels_col = 'annotations'
         self.query_col = 'input'
-        self.correct_answer_col = 'comment'
+        self.correct_answer_col = None
+
+    def fetch_wikidata(self, params):
+        url = 'https://www.wikidata.org/w/api.php'
+        try:
+            return requests.get(url, params=params)
+        except:
+            return 'There was and error'
+
+    def get_wiki_article(self, topic):
+        # Which parameters to use
+        params = {
+            'action': 'wbsearchentities',
+            'format': 'json',
+            'search': topic,
+            'language': 'en'
+        }
+        # Fetch API
+        data = self.fetch_wikidata(params)
+        # show response as JSON
+        data = data.json()
+        try:
+            id = data['search'][0]['id']
+            params = {
+                'action': 'wbgetentities',
+                'ids': id,
+                'format': 'json',
+                'languages': 'en'
+            }
+            # fetch the API
+            data = self.fetch_wikidata(params)
+            # Show response
+            data = data.json()
+            url = wikipedia.page(data["entities"][id]['sitelinks']['enwiki']['title']).url
+            return self.retrieve_wiki_article(url)
+
+        except:
+            try:
+                article_name = wikipedia.search(topic)[0]
+                url = wikipedia.page(article_name).url
+                return self.retrieve_wiki_article(url)
+            except:
+                try:
+                    url = f"https://en.wikipedia.org/wiki/{'_'.join(topic.split())}"
+                    return self.retrieve_wiki_article(url)
+
+                except:
+                    print(f"Content not found on the page for {topic}")
+                    return ""
 
     def load(self):
         self.load_jsonl_data()
+        self.data["article"] = self.data["topic"].apply(lambda x: self.get_wiki_article(x))
 
 
 class ExpertQAData(ReadData):
@@ -179,7 +292,7 @@ class ExpertQAData(ReadData):
         self.generations_col = 'answer_string'
         self.labels_col = 'claims'
         self.query_col = 'question'
-        self.correct_answer_col = ''
+        self.correct_answer_col = None
 
     def load(self, model):
         data = []
@@ -187,11 +300,12 @@ class ExpertQAData(ReadData):
             for line in f:
                 temp = json.loads(line)
                 try:
-                    print(temp["answers"][model].keys())
                     temp["answers"][model]["question"] = temp["question"]
                     data.append(temp["answers"][model])
                 except KeyError:
                     print(f"KeyError for {model}")
+
+        self.data = pd.DataFrame(data)
 
 class BUMPData(ReadData):
     def __init__(self, data_path=None):
@@ -211,9 +325,9 @@ class BUMPData(ReadData):
 
         self.data = pd.DataFrame(data)
 
-        print(self.data.head())
-        print(self.data.columns)
-        print(self.data[['error_type', 'corrected_error_type']])
+        # print(self.data.head())
+        # print(self.data.columns)
+        # print(self.data[['error_type', 'corrected_error_type']])
 
 
 class FAVAData(ReadData):
@@ -223,7 +337,16 @@ class FAVAData(ReadData):
         self.generations_col = 'output'
         self.labels_col = 'annotated'
         self.query_col = 'prompt'
-        self.correct_answer_col = None
+        self.correct_answer_col = 'reference'
+
+    def remove_error_types(self, input_text):
+        # Define the regular expression pattern
+        pattern = r'<([^>]+)>'
+
+        # Use re.sub to replace all occurrences of the pattern with an empty string
+        result_text = re.sub(pattern, '', input_text)
+
+        return result_text
 
     def load(self, model):
         data = []
@@ -235,9 +358,10 @@ class FAVAData(ReadData):
                 data.append(line)
 
         self.data = pd.DataFrame(data)
+        self.data["reference"] = self.data["annotated"].apply(lambda x: self.remove_error_types(x))
 
-        print(self.data.head())
-        print(self.data.columns)
+        # print(self.data.head())
+        # print(self.data.columns)
 
 class FacToolData(ReadData):
     def __init__(self, data_path=None):
@@ -281,10 +405,10 @@ class QAGSData(ReadData):
                 one_line = json.loads(line)
                 article = {"generated_summary": "", "article": one_line["article"], "label": None}
                 labels_in_article = []
-                print(f"Article: {one_line['article']}")
+                #print(f"Article: {one_line['article']}")
                 for sentence in one_line["summary_sentences"]:
-                    print(f"Sentence: {sentence['sentence']}")
-                    print(f"Responses: {sentence['responses']}")
+                    #print(f"Sentence: {sentence['sentence']}")
+                    #print(f"Responses: {sentence['responses']}")
                     article["generated_summary"] += sentence["sentence"]+" "
                     sentence["label"] = self.most_frequent_response(sentence["responses"])
                     labels_in_article.append(sentence["label"])
@@ -293,8 +417,8 @@ class QAGSData(ReadData):
                 article["label"] = "no" if "no" in labels_in_article else "yes"
                 data_articles.append(article)
 
-                print(len(data_sentences))
-                print(len(data_articles))
+                # print(len(data_sentences))
+                # print(len(data_articles))
 
         if granularity == "sentence":
             self.data = pd.DataFrame(data_sentences)
@@ -304,14 +428,15 @@ class QAGSData(ReadData):
             raise ValueError("Unsupported granularity. Expecting 'sentence' or 'article'.")
 
 
-        print(self.data["label"].value_counts())
-        print(self.data)
-        print(self.data.columns)
+        # print(self.data["label"].value_counts())
+        # print(self.data)
+        # print(self.data.columns)
 
 
 # Example usage:
 if __name__ == "__main__":
-    for path_to_dataset in Path("data/QAGS").glob("*.jsonl"):
-        data = QAGSData(path_to_dataset)
-        data.load("article")
+    for path_to_dataset in Path("data/FactScore").glob("*.jsonl"):
+        print(f"FactScore_{path_to_dataset.stem}")
+        data = FactScoreData(path_to_dataset)
+        data.load()
         output = data.read_data()
