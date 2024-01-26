@@ -4,8 +4,8 @@ import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import LongformerTokenizer, LongformerForMultipleChoice
-from selfcheckgpt.utils import prepare_qa_input, prepare_distractor_input, prepare_answering_input
-from selfcheckgpt.utils import MQAGConfig, get_prob_distances
+from methods.selfcheckgpt.utils import prepare_qa_input, prepare_distractor_input, prepare_answering_input
+from methods.selfcheckgpt.utils import MQAGConfig, get_prob_distances
 
 # ---------------------------------------------------------------------------------------- #
 # Functions for Question Generation & Answering

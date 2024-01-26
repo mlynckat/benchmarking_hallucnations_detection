@@ -9,9 +9,9 @@ logging.set_verbosity_error()
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import LongformerTokenizer, LongformerForMultipleChoice, LongformerForSequenceClassification
 from transformers import DebertaV2ForSequenceClassification, DebertaV2Tokenizer
-from selfcheckgpt.utils import MQAGConfig, expand_list1, expand_list2, NLIConfig
-from selfcheckgpt.modeling_mqag import question_generation_sentence_level, answering
-from selfcheckgpt.modeling_ngram import UnigramModel, NgramModel
+from methods.selfcheckgpt.utils import MQAGConfig, expand_list1, expand_list2, NLIConfig
+from methods.selfcheckgpt.modeling_mqag import question_generation_sentence_level, answering
+from methods.selfcheckgpt.modeling_ngram import UnigramModel, NgramModel
 
 # ---------------------------------------------------------------------------------------- #
 # Functions for counting

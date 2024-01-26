@@ -5,7 +5,7 @@ import spacy
 import torch
 from dotenv import load_dotenv
 from perplexity import Perplexity
-from selfcheckgpt.modeling_selfcheck import SelfCheckMQAG, SelfCheckBERTScore, SelfCheckNgram, SelfCheckNLI
+from methods.selfcheckgpt.modeling_selfcheck import SelfCheckMQAG, SelfCheckBERTScore, SelfCheckNgram, SelfCheckNLI
 
 from methods.AlignScore.alignscore import AlignScore
 from methods.LMvsLM.LM_vs_LM import *
