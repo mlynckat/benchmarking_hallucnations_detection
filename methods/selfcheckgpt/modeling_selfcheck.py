@@ -271,17 +271,15 @@ class SelfCheckBERTScore:
             sample_passage = sampled_passages[s]
             sentences_sample = [sent for sent in self.nlp(sample_passage).sents] # List[spacy.tokens.span.Span]
             sentences_sample = [sent.text.strip() for sent in sentences_sample if len(sent) > 3]
-            num_sentences_sample  = len(sentences_sample)
-
-            refs  = expand_list1(sentences, num_sentences_sample) # r1,r1,r1,....
+            num_sentences_sample = len(sentences_sample)
+            refs = expand_list1(sentences, num_sentences_sample) # r1,r1,r1,....
             if not refs:
+                sentences_sample = [sent for sent in self.nlp(sample_passage).sents]
                 sentences_sample = [sent.text.strip() for sent in sentences_sample]
                 num_sentences_sample = len(sentences_sample)
                 refs = expand_list1(sentences, num_sentences_sample)  # r1,r1,r1,....
             cands = expand_list2(sentences_sample, num_sentences) # s1,s2,s3,...
-            if not cands:
-                sentences_sample = [sent.text.strip() for sent in sentences_sample]
-                cands = expand_list2(sentences_sample, num_sentences)
+
 
             P, R, F1 = bert_score.score(
                     cands, refs,

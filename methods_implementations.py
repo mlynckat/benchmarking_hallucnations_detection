@@ -42,7 +42,7 @@ class SelfCheckGPT(Methods):
     def __init__(self):
         super().__init__()
         self.nlp = spacy.load("en_core_web_sm")
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu") #"cuda" if torch.cuda.is_available() else "cpu"
+        device = torch.device("cpu") #"cuda" if torch.cuda.is_available() else "cpu"
         self.selfcheck_mqag = SelfCheckMQAG(device=device)  # set device to 'cuda' if GPU is available
         self.selfcheck_bertscore = SelfCheckBERTScore(rescale_with_baseline=True)
         self.selfcheck_ngram = SelfCheckNgram(n=1)  # n=1 means Unigram, n=2 means Bigram, etc.
@@ -302,10 +302,39 @@ class SAC3(Methods):
                                                   temperature=0.0)
         print(sac3_q_score, sac3_q_vote)
 
+        # llm SAC3 QM evaluation
+        llm_evaluate = Evaluate(model='falcon-7b')
+        falcon_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        falcon_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+
+        all_resp_falcon = falcon_responses + falcon_perb_responses
+
+        scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+
+        sac3_qm_falcon_score, sac3_qm_falcon_vote = scc.score_scc(question, target_answer, candidate_answers=all_resp_falcon,
+                                                  temperature=0.0)
+
+        # llm SAC3 QM evaluation
+        llm_evaluate = Evaluate(model='starling-7b')
+        starling_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        starling_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+
+        all_resp_starling = starling_responses + starling_perb_responses
+
+        scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+
+        sac3_qm_starling_score, sac3_qm_starling_vote = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
+                                                    temperature=0.0)
+
         output_predictions['sc2_score'] = sc2_score
         output_predictions['sc2_vote'] = sc2_vote
         output_predictions['sac3_q_score'] = sac3_q_score
         output_predictions['sac3_q_vote'] = sac3_q_vote
+        output_predictions['sac3_qm(falcon)_score'] = sac3_qm_falcon_score
+        output_predictions['sac3_qm(falcon)_vote'] = sac3_qm_falcon_vote
+        output_predictions['sac3_qm(starling)_score'] = sac3_qm_starling_score
+        output_predictions['sac3_qm(starling)_vote'] = sac3_qm_starling_vote
+
 
         return output_predictions
 
@@ -328,7 +357,7 @@ class AlignScorer(Methods):
 
         scorer = AlignScore(model='roberta-large', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-large.ckpt',
                             evaluation_mode='nli_sp')
-        score = scorer.score(contexts=[row['reference']], claims=['generations'])
+        score = scorer.score(contexts=[row['references']], claims=['generations'])
 
         output_predictions['AlignScore-large'] = score[0]
 

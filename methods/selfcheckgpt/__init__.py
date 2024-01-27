@@ -1,1 +1,1 @@
-from selfcheckgpt.version import __version__
+from methods.selfcheckgpt.version import __version__

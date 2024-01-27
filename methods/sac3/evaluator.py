@@ -28,6 +28,8 @@ class Evaluate:
                 res = llm_models.call_guanaco_33b(prompt, max_new_tokens=200)
             elif self.model == 'falcon-7b':
                 res = llm_models.call_falcon_7b(prompt, max_new_tokens=200)
+            elif self.model == 'starling-7b':
+                res = llm_models.call_starling_7b(prompt, max_new_tokens=200)
             # other open-sourced llms
             self_responses.append(res)
 
@@ -53,6 +55,8 @@ class Evaluate:
                 res = llm_models.call_guanaco_33b(prompt, max_new_tokens=200)
             elif self.model == 'falcon-7b':
                 res = llm_models.call_falcon_7b(prompt, max_new_tokens=200)
+            elif self.model == 'starling-7b':
+                res = llm_models.call_starling_7b(prompt, max_new_tokens=200)
             # other open-sourced llms
             perb_responses.append(res)
 

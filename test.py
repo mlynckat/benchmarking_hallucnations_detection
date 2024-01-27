@@ -54,19 +54,19 @@ def apply_method(row, method, benchmark):
     if method.__class__.__name__ == "SelfCheckGPT":
         query = get_query(row, benchmark)
         model_name = config[benchmark]['model_name']
-        predictions = method.make_predictions(row, query, model_name)
-    elif method.__class__.__name__ == "LMvsLM" or method.__name__ == "SAC3":
+        predictions = method.make_predictions(row, query=query, model_name=model_name)
+    elif method.__class__.__name__ == "LMvsLM" or method.__class__.__name__ == "SAC3":
         query = get_query(row, benchmark)
-        predictions = method.make_predictions(row, query, task=task)
+        predictions = method.make_predictions(row, query=query, task=task)
     elif method.__class__.__name__ == "AlignScorer":
         query = None
-        predictions = method.make_predictions(row, query)
+        predictions = method.make_predictions(row, query=query)
     else:
         raise ValueError("Unknown method")
     return predictions
 
 
-for dataset_name in ["halueval", "bamboo", "phd", "felm", "fava", "factscore"]:  # , "selfcheckgpt", "bamboo", "phd", "felm", "fava"
+for dataset_name in ["felm", "halueval", "bamboo", "phd", "felm", "fava", "factscore"]:  # , "selfcheckgpt", "bamboo", "phd", "felm", "fava"
     data = load_data_by_name(dataset_name)
 
     for current_data_name in data.keys():
@@ -78,7 +78,7 @@ for dataset_name in ["halueval", "bamboo", "phd", "felm", "fava", "factscore"]: 
 
         current_data = data[current_data_name]
 
-        for method in [LMvsLM()]: #, SAC3(), LMvsLM()
+        for method in [AlignScorer()]: #, SAC3(), LMvsLM() , SelfCheckGPT(), LMvsLM()
             logging.info(f"Working on {method.__class__.__name__}...")
 
             if method.__class__.__name__ == "SAC3":

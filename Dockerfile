@@ -10,5 +10,6 @@ RUN pip3 install torch torchvision torchaudio --index-url https://download.pytor
 WORKDIR /usr/src/app
 COPY . .
 RUN pip install -r requirements.txt
+RUN python3 -m nltk.downloader punkt
 
 EXPOSE 22

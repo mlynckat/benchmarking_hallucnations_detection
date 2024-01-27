@@ -52,7 +52,7 @@
   "HaluEval_qa_data": {
     "model_name": "chatgpt",
     "task": "question_answering",
-    "prompt": "Please answer the following question based on the following passage. \nQuestion:{question}. \nPassage: {passage}."
+    "prompt": "Please answer the following question based on the following passage. \nQuestion: {question}. \nPassage: {passage}."
   },
   "HaluEval_summarization_data": {
     "model_name": "chatgpt",
