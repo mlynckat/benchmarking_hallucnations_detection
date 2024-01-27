@@ -59,7 +59,7 @@ def call_guanaco_33b(prompt, max_new_tokens):
     res_sp = res.split('###')
     output = res_sp[1] + res_sp[2]
 
-    return output
+    return output, 0
 
 
 def call_falcon_7b(prompt, max_new_tokens):
@@ -83,9 +83,11 @@ def call_falcon_7b(prompt, max_new_tokens):
         eos_token_id=tokenizer.eos_token_id,
     )
     for seq in sequences:
+        print(f"Sequence: {seq['generated_text']}")
         res = seq['generated_text']
+    print(f"Result: {res}")
 
-    return res
+    return res, 0
 
 def call_starling_7b(prompt, max_new_tokens):
     # 16 float
@@ -107,6 +109,8 @@ def call_starling_7b(prompt, max_new_tokens):
         eos_token_id=tokenizer.eos_token_id,
     )
     for seq in sequences:
+        print(f"Sequence: {seq['generated_text']}")
         res = seq['generated_text']
+    print(f"Result: {res}")
 
-    return res
+    return res, 0

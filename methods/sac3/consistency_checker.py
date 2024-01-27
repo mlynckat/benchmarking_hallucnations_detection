@@ -34,15 +34,17 @@ class SemanticConsistnecyCheck:
         sc_output = []
         target_pair = 'Q:' + question + '\nA:' + target_answer
         num_candidate_answer = len(candidate_answers)
+        costs = 0
         for i in range(num_candidate_answer):
             candidate_pair = 'Q:' + question + '\nA:' + candidate_answers[i]
             prompt = self.prompt_temp + '\nThe first QA pair is:\n' + target_pair + '\nThe second QA pair is:\n' + candidate_pair
-            res = llm_models.call_openai_model(prompt, self.model, temperature)  # openai model call
+            res, cost = llm_models.call_openai_model(prompt, self.model, temperature)  # openai model call
             guess = res.split(':')[1].split('\n')[0].strip()
             # print(res, guess)
             value = 0 if guess == 'Yes' else 1
             # print('value',value)
             sc_output.append(value)
+            costs += cost
 
         score = sum(sc_output) / num_candidate_answer
-        return score, sc_output
+        return score, sc_output, costs

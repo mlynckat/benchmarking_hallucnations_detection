@@ -24,4 +24,4 @@ def paraphrase(question, number, model, temperature):
         perb_questions.append(res_split[i])
         costs += cost
 
-    return perb_questions
+    return perb_questions, costs

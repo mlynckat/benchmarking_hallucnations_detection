@@ -78,7 +78,7 @@ for dataset_name in ["felm", "halueval", "bamboo", "phd", "felm", "fava", "facts
 
         current_data = data[current_data_name]
 
-        for method in [AlignScorer()]: #, SAC3(), LMvsLM() , SelfCheckGPT(), LMvsLM()
+        for method in [SAC3(), LMvsLM()]: #, SAC3(), LMvsLM() , SelfCheckGPT(), LMvsLM(), AlignScorer()
             logging.info(f"Working on {method.__class__.__name__}...")
 
             if method.__class__.__name__ == "SAC3":

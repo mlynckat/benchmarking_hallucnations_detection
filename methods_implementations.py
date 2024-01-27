@@ -284,46 +284,55 @@ class SAC3(Methods):
         question = query
         target_answer = row['generations']
 
+        logging.info(f"Query: {query}")
+        logging.info(f"Generations: {row['generations']}")
+
         # question perturbation
-        gen_question = paraphraser.paraphrase(question, number=3, model='gpt-3.5-turbo', temperature=1.0)
+        gen_question, cost_gen_question = paraphraser.paraphrase(question, number=3, model='gpt-3.5-turbo', temperature=1.0)
 
         # llm evaluation
         llm_evaluate = Evaluate(model='gpt-3.5-turbo')
-        self_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
-        perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+        self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        perb_responses, cost_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+
+        logging.info(f"Self responses: {self_responses}")
+        logging.info(f"Perb responses: {perb_responses}")
 
         # consistency check
         scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
 
-        sc2_score, sc2_vote = scc.score_scc(question, target_answer, candidate_answers=self_responses, temperature=0.0)
+        sc2_score, sc2_vote, cost_scoring_sc2 = scc.score_scc(question, target_answer, candidate_answers=self_responses, temperature=0.0)
         print(sc2_score, sc2_vote)
 
-        sac3_q_score, sac3_q_vote = scc.score_scc(question, target_answer, candidate_answers=perb_responses,
+        sac3_q_score, sac3_q_vote, cost_scoring_sac3 = scc.score_scc(question, target_answer, candidate_answers=perb_responses,
                                                   temperature=0.0)
         print(sac3_q_score, sac3_q_vote)
 
         # llm SAC3 QM evaluation
         llm_evaluate = Evaluate(model='falcon-7b')
-        falcon_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
-        falcon_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+        falcon_responses, falcon_cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        falcon_perb_responses, falcon_cost = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
         all_resp_falcon = falcon_responses + falcon_perb_responses
+        logging.info(f"Falcon responses: {all_resp_falcon}")
 
         scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
 
-        sac3_qm_falcon_score, sac3_qm_falcon_vote = scc.score_scc(question, target_answer, candidate_answers=all_resp_falcon,
+        sac3_qm_falcon_score, sac3_qm_falcon_vote, cost_scoring_sac3_falcon = scc.score_scc(question, target_answer, candidate_answers=all_resp_falcon,
                                                   temperature=0.0)
 
         # llm SAC3 QM evaluation
         llm_evaluate = Evaluate(model='starling-7b')
-        starling_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
-        starling_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
+        starling_responses, cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+        starling_perb_responses, cost = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
         all_resp_starling = starling_responses + starling_perb_responses
 
+        logging.info(f"Starling responses: {all_resp_starling}")
+
         scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
 
-        sac3_qm_starling_score, sac3_qm_starling_vote = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
+        sac3_qm_starling_score, sac3_qm_starling_vote, cost_scoring_sac3_starling = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
                                                     temperature=0.0)
 
         output_predictions['sc2_score'] = sc2_score
@@ -334,6 +343,10 @@ class SAC3(Methods):
         output_predictions['sac3_qm(falcon)_vote'] = sac3_qm_falcon_vote
         output_predictions['sac3_qm(starling)_score'] = sac3_qm_starling_score
         output_predictions['sac3_qm(starling)_vote'] = sac3_qm_starling_vote
+        output_predictions['sc2_cost'] = cost_gen_question + cost_self_responses + cost_scoring_sc2
+        output_predictions['sac3_q_cost'] = cost_gen_question + cost_perb_responses + cost_scoring_sac3
+        output_predictions['sac3_qm(falcon)_cost'] = cost_gen_question + cost_scoring_sac3_falcon
+        output_predictions['sac3_qm(starling)_cost'] = cost_gen_question + cost_scoring_sac3_starling
 
 
         return output_predictions
