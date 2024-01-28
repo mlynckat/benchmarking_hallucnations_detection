@@ -78,6 +78,6 @@ def load_data_by_name(dataset_name):
     return dataset_output
 
 if __name__ == "__main__":
-    for dataset_name in ["BUMP", "ExpertQA"]: #"SelfCheckGPT", "PHD", "HaluEval", "BAMBOO", "FELM", "FactScore", "FAVA", "FacTool", "BUMP",
+    for dataset_name in ["HaluEval", "SelfCheckGPT", "PHD", "BAMBOO", "FELM", "FactScore", "FAVA"]: #"SelfCheckGPT", "PHD", "HaluEval", "BAMBOO", "FELM", "FactScore", "FAVA", "FacTool", "BUMP",
         dataset_output = load_data_by_name(dataset_name)
         print("-"*50)

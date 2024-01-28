@@ -96,10 +96,10 @@ class ReadData:
                 self.data.rename(columns={old_name: new_name}, inplace=True)
 
 
-        assert len(self.data.columns) == len(set(self.data.columns)), "Duplicate column names detected."
-        #for col in self.data.columns:
-        #    print(col)
-        #    print(self.data.loc[0:3, col])
+        assert len(self.data.columns) == len(set(self.data.columns)), f"Duplicate column names detected. {self.data.columns}"
+
+        print(self.data["labels"].head())
+
         return self.data
 
 
@@ -109,7 +109,7 @@ class SelfCheckGPTData(ReadData):
         super().__init__(data_path)
         self.references_col = 'wiki_bio_text'
         self.generations_col = 'gpt3_text'
-        self.labels_col = 'annotation'
+        self.labels_col = 'label'
         self.query_col = 'wiki_bio_test_entity'
         self.correct_answer_col = 'gpt3_text_samples'
 
@@ -121,10 +121,22 @@ class SelfCheckGPTData(ReadData):
         entity_name = self.wiki_bio.loc[idx]['input_text']['context']
         return entity_name
 
+    def calculate_average_label(self, input_list):
+        # Step 1: Substitute labels
+        label_mapping = {"accurate": 0, "minor_inaccurate": 0.5, "major_inaccurate": 1}
+        substituted_list = [label_mapping[label] for label in input_list]
+
+        # Step 2: Calculate average
+        average_value = sum(substituted_list) / len(substituted_list)
+
+        return average_value
+
     def load(self):
         self.load_hf_data("evaluation")
         self.data["wiki_bio_test_entity"] = self.data["wiki_bio_test_idx"].apply(lambda x: self.get_entity_name(x))
-
+        self.data["label"] = self.data["annotation"].apply(lambda x: self.calculate_average_label(x))
+        # mean amount of words in column "gpt3_text"
+        print(self.data["gpt3_text"].str.split().str.len().mean())
 
 class HaluEvalData(ReadData):
     def __init__(self, data_path=None):
@@ -161,15 +173,28 @@ class HaluEvalData(ReadData):
             }
 
         }
-        data_type = self.data_path.stem
-        self.references_col = self.fields[data_type]['reference']
-        self.generations_col = self.fields[data_type]['generations']
-        self.labels_col = self.fields[data_type]['labels']
-        self.query_col = self.fields[data_type]['query']
-        self.correct_answer_col = self.fields[data_type]['correct_answer']
+        self.data_type = self.data_path.stem
+        self.references_col = self.fields[self.data_type]['reference']
+        self.generations_col = self.fields[self.data_type]['generations']
+        self.labels_col = self.fields[self.data_type]['labels']
+        self.query_col = self.fields[self.data_type]['query']
+        self.correct_answer_col = self.fields[self.data_type]['correct_answer']
+
+    def transform_labels(self, label):
+        if label == "yes":
+            return 1
+        elif label == "no":
+            return 0
+        else:
+            return None
 
     def load(self):
         self.load_jsonl_data()
+        if self.data_type in ["qa_data", "dialogue_data", "summarization_data"]:
+            self.data["labels"] = 1
+        elif self.data_type == "general_data":
+            self.data["labels"] = self.data["hallucination"].apply(lambda x: self.transform_labels(x))
+
 
 
 class BAMBOOData(ReadData):
@@ -177,12 +202,21 @@ class BAMBOOData(ReadData):
         super().__init__(data_path)
         self.references_col = 'content'
         self.generations_col = 'hypothesis'
-        self.labels_col = 'answer'
+        self.labels_col = 'label'
         self.query_col = None
         self.correct_answer_col = None
 
+    def transform_labels(self, label):
+        if label == False:
+            return 1
+        elif label == True:
+            return 0
+        else:
+            return None
+
     def load(self):
         self.load_jsonl_data()
+        self.data["label"] = self.data["answer"].apply(lambda x: self.transform_labels(x))
 
 
 class FELMData(ReadData):
@@ -190,12 +224,24 @@ class FELMData(ReadData):
         super().__init__(data_path)
         self.references_col = None
         self.generations_col = 'response'
-        self.labels_col = 'labels'
+        self.labels_col = 'labels_new'
         self.query_col = 'prompt'
         self.correct_answer_col = 'comment'
 
+    def transform_labels(self, label):
+        if label:
+            if False in label:
+                return 1
+            else:
+                return 0
+        else:
+            return None
+
     def load(self, subset):
         self.load_hf_data("test", subset)
+        self.data["labels_new"] = self.data["labels"].apply(lambda x: self.transform_labels(x))
+        # rename column labels to labels_old
+        self.data.rename(columns={"labels": "labels_old"}, inplace=True)
 
 
 class PHDData(ReadData):
@@ -203,10 +249,17 @@ class PHDData(ReadData):
         super().__init__(data_path)
         self.references_col = 'entity_content'
         self.generations_col = 'AI'
-        self.labels_col = 'label'
+        self.labels_col = 'label_new'
         self.query_col = 'entity'
         self.correct_answer_col = None
 
+    def transform_labels(self, label):
+        if label == "factual":
+            return 0
+        elif label == "non-factual":
+            return 1
+        else:
+            return None
     def clean_text(self, text):
         # Remove multiple spaces and newlines
         cleaned_text = re.sub(r'\s+', ' ', text)
@@ -219,8 +272,9 @@ class PHDData(ReadData):
             data = json.load(f)
         self.data = pd.DataFrame(data[subset])
         self.data["entity_content"] = self.data["url"].apply(lambda x: self.retrieve_wiki_article(x))
-        for ind in range(5):
-            print(self.data.loc[ind, "entity_content"])
+        #for ind in range(5):
+        #   print(self.data.loc[ind, "entity_content"])
+        self.data["label_new"] = self.data["label"].apply(lambda x: self.transform_labels(x))
 
 
 class FactScoreData(ReadData):
@@ -228,9 +282,33 @@ class FactScoreData(ReadData):
         super().__init__(data_path)
         self.references_col = 'article'
         self.generations_col = 'output'
-        self.labels_col = 'annotations'
+        self.labels_col = 'label'
         self.query_col = 'input'
         self.correct_answer_col = None
+
+    def transform_labels(self, annotations):
+        labels = []
+        if annotations:
+            for annotation in annotations:
+                if "human-atomic-facts" in annotation:
+                    human_atomic_facts = annotation["human-atomic-facts"]
+                    if human_atomic_facts:
+                        for fact in human_atomic_facts:
+                            if "label" in fact:
+                                labels.append(fact["label"])
+
+            # Check if there is at least one element other than "S" and "NS" in the list
+            invalid_labels = set(labels) - {"S", "NS", "IR"}
+            if invalid_labels:
+                raise ValueError(f"Invalid label(s) found: {', '.join(invalid_labels)}")
+
+            # Check if there is at least one "NS" in the list of labels
+            if "NS" in labels:
+                return 1
+            else:
+                return 0
+        else:
+            return None
 
     def fetch_wikidata(self, params):
         url = 'https://www.wikidata.org/w/api.php'
@@ -283,6 +361,7 @@ class FactScoreData(ReadData):
     def load(self):
         self.load_jsonl_data()
         self.data["article"] = self.data["topic"].apply(lambda x: self.get_wiki_article(x))
+        self.data["label"] = self.data["annotations"].apply(lambda x: self.transform_labels(x))
 
 
 class ExpertQAData(ReadData):
@@ -335,9 +414,19 @@ class FAVAData(ReadData):
         super().__init__(data_path)
         self.references_col = None
         self.generations_col = 'output'
-        self.labels_col = 'annotated'
+        self.labels_col = 'label'
         self.query_col = 'prompt'
         self.correct_answer_col = 'reference'
+
+    def assign_label(self, input_string):
+        # Define the pattern using regular expression to capture any text between < and >
+        pattern = r'<([^<>]+)>(.*?)<\/\1>'
+
+        # Search for the pattern in the input string
+        match = re.search(pattern, input_string)
+
+        # If a match is found, return 1; otherwise, return 0
+        return 1 if match else 0
 
     def remove_error_types(self, input_text):
         # Define the regular expression pattern
@@ -359,6 +448,7 @@ class FAVAData(ReadData):
 
         self.data = pd.DataFrame(data)
         self.data["reference"] = self.data["annotated"].apply(lambda x: self.remove_error_types(x))
+        self.data["label"] = self.data["annotated"].apply(lambda x: self.assign_label(x))
 
         # print(self.data.head())
         # print(self.data.columns)
