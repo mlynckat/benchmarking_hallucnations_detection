@@ -522,11 +522,45 @@ class QAGSData(ReadData):
         # print(self.data)
         # print(self.data.columns)
 
+class ScreenEvalData(ReadData):
+    def __init__(self, data_path=None):
+        super().__init__(data_path)
+        self.references_col = 'original_convo'
+        self.generations_col = 'annotated_summary'
+        self.labels_col = 'agg_label'
+        self.query_col = None
+        self.correct_answer_col = None
+
+    def transform_labels(self, label):
+        if label:
+            if False in label:
+                return 1
+            else:
+                return 0
+        else:
+            return None
+
+    def load(self, model):
+        with open(self.data_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        model_ids = []
+        for id in data["summary_id"].keys():
+            if data["summary_id"][id] == model:
+                model_ids.append(id)
+        print(len(model_ids))
+        dict_data = {}
+        for col in data.keys():
+            dict_data[col] = [data[col][id] for id in model_ids]
+        self.data = pd.DataFrame(dict_data)
+
+
 
 # Example usage:
 if __name__ == "__main__":
-    for path_to_dataset in Path("data/FactScore").glob("*.jsonl"):
-        print(f"FactScore_{path_to_dataset.stem}")
-        data = FactScoreData(path_to_dataset)
-        data.load()
+    for model in ["longformer", "gpt4", "human"]:
+        data = ScreenEvalData("data/screen_eval.json")
+        data.load(model)
         output = data.read_data()
+        print(output.columns)
+        print(output)
