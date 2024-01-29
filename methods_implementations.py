@@ -355,13 +355,19 @@ class SAC3(Methods):
 
             sac3_qm_starling_score, sac3_qm_starling_vote, cost_scoring_sac3_starling = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
                                                         temperature=0.0)
-
+            output_predictions['gen_questions'] = gen_question
+            output_predictions['self_responses'] = self_responses
+            output_predictions['perb_responses'] = perb_responses
             output_predictions['sc2_score'] = sc2_score
             output_predictions['sc2_vote'] = sc2_vote
             output_predictions['sac3_q_score'] = sac3_q_score
             output_predictions['sac3_q_vote'] = sac3_q_vote
+            output_predictions['falcon_responses'] = falcon_responses
+            output_predictions['falcon_perb_responses'] = falcon_perb_responses
             output_predictions['sac3_qm(falcon)_score'] = sac3_qm_falcon_score
             output_predictions['sac3_qm(falcon)_vote'] = sac3_qm_falcon_vote
+            output_predictions['starling_responses'] = starling_responses
+            output_predictions['starling_perb_responses'] = starling_perb_responses
             output_predictions['sac3_qm(starling)_score'] = sac3_qm_starling_score
             output_predictions['sac3_qm(starling)_vote'] = sac3_qm_starling_vote
             output_predictions['sc2_cost'] = cost_gen_question + cost_self_responses + cost_scoring_sc2
@@ -381,6 +387,14 @@ class SAC3(Methods):
             output_predictions['sac3_q_cost'] = None
             output_predictions['sac3_qm(falcon)_cost'] = None
             output_predictions['sac3_qm(starling)_cost'] = None
+            output_predictions['gen_questions'] = None
+            output_predictions['self_responses'] = None
+            output_predictions['perb_responses'] = None
+            output_predictions['falcon_responses'] = None
+            output_predictions['falcon_perb_responses'] = None
+            output_predictions['starling_responses'] = None
+            output_predictions['starling_perb_responses'] = None
+
 
 
         return output_predictions
