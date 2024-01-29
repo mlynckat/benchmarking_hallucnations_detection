@@ -118,8 +118,9 @@ def main(benchmarks, methods):  # Added main function for better organization
                     starting_point = 0
                     updated_data_exists = False
 
-                for step in range(starting_point, current_data.shape[0], 5):
-                    step_data = current_data.loc[step:step + 5].apply(
+                for step in range(starting_point, current_data.shape[0], 4):
+                    end_index = min(step + 5, current_data.shape[0] - 1)
+                    step_data = current_data.loc[step:end_index].apply(
                         lambda row: apply_method(row, method, current_data_name),
                         axis=1)
                     # concat to th updated_data if exists

@@ -60,7 +60,7 @@ class SelfCheckGPT(Methods):
                     model=model,
                     prompt=query,
                     temperature=1,
-                    max_tokens=100)
+                    max_tokens=200)
                 samples.append(response.choices[0].text)
                 cost += response.usage.total_tokens
         elif model_name == "gpt4":
@@ -72,7 +72,7 @@ class SelfCheckGPT(Methods):
                         {"role": "user", "content": query},
                     ],
                     temperature=1,
-                    max_tokens=100)
+                    max_tokens=200)
                 samples.append(response.choices[0].message.content)
                 cost += response.usage.total_tokens
         elif model_name == "chatgpt":
@@ -84,7 +84,7 @@ class SelfCheckGPT(Methods):
                         {"role": "user", "content": query},
                     ],
                     temperature=1,
-                    max_tokens=100)
+                    max_tokens=200)
                 samples.append(response.choices[0].message.content)
                 cost += response.usage.total_tokens
         elif model_name == "perplexityAI":
@@ -163,9 +163,9 @@ class SelfCheckGPT(Methods):
         logging.info(f"Generations: {row['generations']}")
         output_predictions = row.copy(deep=True)
         # LLM's text (e.g. GPT-3 response) to be evaluated at the sentence level  & Split it into sentences
-        if row["labels"]:
+        if row["labels"] or row["labels"]==0:
             sentences = [sent.text.strip() for sent in self.nlp(row['generations'].strip()).sents]  # spacy sentence tokenization
-            additional_samples, costs = self.generate_additional_samples(query, model_name)
+            additional_samples, costs = self.generate_additional_samples(query, model_name, num_samples=20)
             logging.info(f"Additional samples: {additional_samples}")
             output_predictions[f'additional_samples_{model_name}'] = additional_samples
             # SelfCheck-MQAG: Score for each sentence where value is in [0.0, 1.0] and high value means non-factual
@@ -240,8 +240,8 @@ class LMvsLM(Methods):
         super().__init__()
 
 
-    def detect_hal(self, query, claim, task):
-        examiner = Examiner(claim, task)
+    def detect_hal(self, query, claim, task, reference):
+        examiner = Examiner(claim, task, query=query, reference=reference)
         examinee = Suspect(query, claim)
         question = examiner.Setup()
         trigger = True
@@ -266,12 +266,11 @@ class LMvsLM(Methods):
         logging.info(f"Task: {task}")
 
         output_predictions = row.copy(deep=True)
-        if row["labels"]:
+        if row["labels"] or row["labels"]==0:
 
             all_history = []
-
-
-            label_content, history, costs = self.detect_hal(query, row['generations'], task)
+            references = row['references'] if "references" in row.index else None
+            label_content, history, costs = self.detect_hal(query=query, claim=row['generations'], task=task, reference=references)
             if 'correct' in label_content.lower() and 'incorrect' not in label_content.lower():
                 label = 'factual'
             elif 'incorrect' in label_content.lower():
@@ -300,12 +299,15 @@ class SAC3(Methods):
         output_predictions = row.copy(deep=True)
 
         # input information
-        question = query
+        if query.startswith("This is a Wikipedia passage about"):
+            question = query.replace("This is a Wikipedia passage about", "Write a Wikipedia passage about")
+        else:
+            question = query
         target_answer = row['generations']
 
         logging.info(f"Query: {query}")
         logging.info(f"Generations: {row['generations']}")
-        if row["labels"]:
+        if row["labels"] or row["labels"]==0:
         # question perturbation
             gen_question, cost_gen_question = paraphraser.paraphrase(question, number=3, model='gpt-3.5-turbo', temperature=1.0)
 
