@@ -235,6 +235,53 @@ class SelfCheckGPT(Methods):
 
         return output_predictions
 
+    def make_predictions_no_sampling(self, row, query, model_name=None):
+        logging.info(f"Query: {query}")
+        logging.info(f"Model name: {model_name}")
+        logging.info(f"Generations: {row['generations']}")
+        output_predictions = row.copy(deep=True)
+
+        sentences = [sent.text.strip() for sent in self.nlp(row['generations'].strip()).sents]  # spacy sentence tokenization
+        print(row["additional_samples_gpt3"])
+        additional_samples = row["additional_samples_gpt3"][0:10]
+
+        # SelfCheck-MQAG: Score for each sentence where value is in [0.0, 1.0] and high value means non-factual
+        sent_scores_mqag = self.selfcheck_mqag.predict(
+            sentences = sentences,               # list of sentences
+            passage = row['generations'],                   # passage (before sentence-split)
+            sampled_passages = additional_samples, # list of sampled passages
+            num_questions_per_sent = 5,          # number of questions to be drawn
+            scoring_method = 'bayes_with_alpha', # options = 'counting', 'bayes', 'bayes_with_alpha'
+            beta1 = 0.8, beta2 = 0.8,            # additional params depending on scoring_method
+        )
+        output_predictions['SefCheckGPT_mqag_10samples'] = sum(sent_scores_mqag)/len(sent_scores_mqag)
+
+        # --------------------------------------------------------------------------------------------------------------- #
+        # SelfCheck-BERTScore: Score for each sentence where value is in [0.0, 1.0] and high value means non-factual
+        sent_scores_bertscore = self.selfcheck_bertscore.predict(
+            sentences = sentences,                          # list of sentences
+            sampled_passages = additional_samples, # list of sampled passages
+        )
+        output_predictions['SefCheckGPT_bertscore_10samples'] = sum(sent_scores_bertscore)/len(sent_scores_bertscore)
+
+        # --------------------------------------------------------------------------------------------------------------- #
+        # SelfCheck-Ngram: Score at sentence- and document-level where value is in [0.0, +inf) and high value means non-factual
+        sent_scores_ngram = self.selfcheck_ngram.predict(
+            sentences=sentences,
+            passage=row['generations'],
+            sampled_passages=additional_samples,
+        )
+        # --------------------------------------------------------------------------------------------------------------- #
+        output_predictions['SefCheckGPT_ngram_10samples'] = sent_scores_ngram['doc_level']['avg_neg_logprob']
+
+        sent_scores_nli = self.selfcheck_nli.predict(
+            sentences=sentences,  # list of sentences
+            sampled_passages=additional_samples,  # list of sampled passages
+        )
+        output_predictions['SefCheckGPT_nli_10samples'] = sum(sent_scores_nli) / len(sent_scores_nli)
+
+        return output_predictions
+
 class LMvsLM(Methods):
     def __init__(self):
         super().__init__()
