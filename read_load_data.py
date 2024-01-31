@@ -562,5 +562,8 @@ if __name__ == "__main__":
         data = ScreenEvalData("data/screen_eval.json")
         data.load(model)
         output = data.read_data()
+        for ind in range(3):
+            for col in output.columns:
+                print(f"{col}: {output.loc[ind, col]}")
         print(output.columns)
         print(output)

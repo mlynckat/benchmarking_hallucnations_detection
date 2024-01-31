@@ -73,6 +73,12 @@ def load_data_by_name(dataset_name):
             data.load()
             output = data.read_data()
             dataset_output[f"BUMP_{path_to_dataset.stem}"] = output
+    elif dataset_name == "screeneval":
+        for model in ["longformer", "gpt4", "human"]:
+            data = ScreenEvalData("data/screen_eval.json")
+            data.load(model)
+            output = data.read_data()
+            dataset_output[f"ScreenEval_{model}"] = output
     else:
         raise ValueError("Invalid dataset name. Please choose from the following: SelfCheckGPT, PHD, HaluEval, BAMBOO, FELM, FactScore, ExpertQA, FAVA, FacTool")
     return dataset_output
