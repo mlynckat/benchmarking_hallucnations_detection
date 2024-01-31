@@ -12,11 +12,11 @@ path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data.csv"
 df = pd.read_csv(path_to_df)
 print(f"The size of the dataset is {df.shape[0]}")
 # drop duplicates
+df = df.drop(['0'], axis=1)
+df = df.dropna(subset=['query'])
 df = df.drop_duplicates(subset=['query'], keep='first')
 print(f"The size of the dataset is {df.shape[0]}")
 # drop rows with nan values
-df = df.drop(['0'], axis=1)
-df = df.dropna(subset=['query'])
 
 print(f"The size of the dataset is {df.shape[0]}")
 
