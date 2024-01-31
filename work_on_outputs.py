@@ -5,19 +5,22 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 
 # read pandas dataframe from csv
 
-path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data.csv"
+path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data_ngram.csv"
 
 df = pd.read_csv(path_to_df)
 print(f"The size of the dataset is {df.shape[0]}")
 # drop duplicates
-df = df.drop(['0'], axis=1)
-df = df.dropna(subset=['query', "SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_ngram", "SefCheckGPT_nli", "SefCheckGPT_prompting"])
-df = df.drop_duplicates(subset=['query'], keep='first')
+na_free = df.dropna(subset=['query', "SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_ngram", "SefCheckGPT_nli", "SefCheckGPT_prompting"])
+print(df[~df.index.isin(na_free.index)]["query"])
+na_free = df.drop_duplicates(subset=['query'], keep='first')
 print(f"The size of the dataset is {df.shape[0]}")
 # drop rows with nan values
 
-print(f"The size of the dataset is {df.shape[0]}")
 print(df.tail(20))
+
+#calculate mean value for column "additional_samples_costs"
+mean_value = df['additional_samples_costs'].mean()
+print(mean_value)
 
 def calculate_correlation(df, col1, col2):
     """
@@ -139,7 +142,7 @@ print(f"F1 Score: {f1_score_val}")
     pearson, spearman = calculate_correlation(df, "labels", col)
     print(f"For {col}, Pearson correlation coefficient is {pearson} and Spearman correlation coefficient is {spearman}")"""
 
-for col in ["SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_ngram", "SefCheckGPT_nli", "SefCheckGPT_prompting"]:
+for col in ["SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_nli", "SefCheckGPT_prompting", "SefCheckGPT_max_ngram"]:
     pearson, spearman = calculate_correlation(df, "labels", col)
     print(f"For {col}, Pearson correlation coefficient is {pearson} and Spearman correlation coefficient is {spearman}")
 

@@ -1,6 +1,6 @@
 import json
 import os
-
+import ast
 import pandas as pd
 
 from methods_implementations import SelfCheckGPT
@@ -11,10 +11,12 @@ path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data.csv"
 
 df = pd.read_csv(path_to_df)
 print(f"The size of the dataset is {df.shape[0]}")
+
 # drop duplicates
 df = df.drop(['0'], axis=1)
-df = df.dropna(subset=['query'])
+df = df.dropna(subset=['query', "additional_samples_gpt3"])
 df = df.drop_duplicates(subset=['query'], keep='first')
+df['additional_samples_gpt3'] = df['additional_samples_gpt3'].apply(ast.literal_eval)
 print(f"The size of the dataset is {df.shape[0]}")
 # drop rows with nan values
 

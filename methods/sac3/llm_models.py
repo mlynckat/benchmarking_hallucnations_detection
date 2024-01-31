@@ -70,8 +70,8 @@ def call_falcon_7b(prompt, max_new_tokens):
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        torch_dtype=torch.bfloat16,
-        trust_remote_code=True,
+        #torch_dtype=torch.bfloat16,
+        #trust_remote_code=True,
         device_map="auto"
     )
     sequences = pipeline(
@@ -97,16 +97,14 @@ def call_starling_7b(prompt, max_new_tokens):
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        torch_dtype=torch.bfloat16,
+        #torch_dtype=torch.bfloat16,
         device_map="auto"
     )
     sequences = pipeline(
-        prompt,
-        max_new_tokens=max_new_tokens,
-        do_sample=True,
-        top_k=10,
-        num_return_sequences=1,
-        eos_token_id=tokenizer.eos_token_id,
+        f"GPT4 Correct User: {prompt}<|end_of_turn|>GPT4 Correct Assistant: ",
+        max_length=256,
+        pad_token_id=tokenizer.pad_token_id,
+        eos_token_id=tokenizer.eos_token_id
     )
     for seq in sequences:
         print(f"Sequence: {seq['generated_text']}")

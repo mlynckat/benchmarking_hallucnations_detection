@@ -273,6 +273,7 @@ class SelfCheckGPT(Methods):
         )
         # --------------------------------------------------------------------------------------------------------------- #
         output_predictions['SefCheckGPT_ngram_10samples'] = sent_scores_ngram['doc_level']['avg_neg_logprob']
+        output_predictions['SefCheckGPT_max_ngram_10_samples'] = sent_scores_ngram['doc_level']['avg_max_neg_logprob']
 
         sent_scores_nli = self.selfcheck_nli.predict(
             sentences=sentences,  # list of sentences
