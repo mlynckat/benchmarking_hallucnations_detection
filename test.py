@@ -73,7 +73,7 @@ def apply_method(row, method, benchmark):
         predictions = method.make_predictions(row, query=query)
     else:
         raise ValueError("Unknown method")
-    return predictions
+    return pd.DataFrame(predictions).transpose()
 
 def main(benchmarks, methods):  # Added main function for better organization
     for dataset_name in benchmarks: #["selfcheckgpt", "felm", "bamboo", "phd", "felm", "fava", "factscore"]
