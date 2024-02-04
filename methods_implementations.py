@@ -204,6 +204,8 @@ class SelfCheckGPT(Methods):
             # --------------------------------------------------------------------------------------------------------------- #
             output_predictions['SefCheckGPT_sent_ngram'] = sent_scores_ngram['sent_level']['avg_neg_logprob']
             output_predictions['SefCheckGPT_ngram'] = sent_scores_ngram['doc_level']['avg_neg_logprob']
+            output_predictions['SefCheckGPT_max_ngram'] = sent_scores_ngram['doc_level'][
+                'avg_max_neg_logprob']
 
             sent_scores_nli = self.selfcheck_nli.predict(
                 sentences=sentences,  # list of sentences
@@ -460,13 +462,13 @@ class AlignScorer(Methods):
 
         scorer = AlignScore(model='roberta-base', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-base.ckpt',
                             evaluation_mode='nli_sp')
-        score = scorer.score(contexts=[row['references']], claims=['generations'])
+        score = scorer.score(contexts=[row['references']], claims=[row['generations']])
 
         output_predictions['AlignScore-base'] = score[0]
 
         scorer = AlignScore(model='roberta-large', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-large.ckpt',
                             evaluation_mode='nli_sp')
-        score = scorer.score(contexts=[row['references']], claims=['generations'])
+        score = scorer.score(contexts=[row['references']], claims=[row['generations']])
 
         output_predictions['AlignScore-large'] = score[0]
 

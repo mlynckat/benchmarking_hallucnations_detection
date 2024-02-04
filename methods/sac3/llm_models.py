@@ -85,6 +85,7 @@ def call_falcon_7b(prompt, max_new_tokens):
     for seq in sequences:
         print(f"Sequence: {seq['generated_text']}")
         res = seq['generated_text']
+    res = res.split(prompt)[-1]
     print(f"Result: {res}")
 
     return res, 0
@@ -109,6 +110,7 @@ def call_starling_7b(prompt, max_new_tokens):
     for seq in sequences:
         print(f"Sequence: {seq['generated_text']}")
         res = seq['generated_text']
+    res = res.split("GPT4 Correct Assistant: ")[-1]
     print(f"Result: {res}")
 
     return res, 0

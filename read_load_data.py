@@ -147,28 +147,28 @@ class HaluEvalData(ReadData):
                 "reference": "knowledge",
                 "query": "question",
                 "generations": "hallucinated_answer",
-                "labels": None,
+                "labels": "labels",
                 "correct_answer": "right_answer",
             },
             "dialogue_data": {
                 "reference": "knowledge",
                 "query": "dialogue_history",
                 "generations": "hallucinated_response",
-                "labels": None,
+                "labels": "labels",
                 "correct_answer": "right_response",
             },
             "summarization_data": {
                 "reference": "document",
                 "query": None,
                 "generations": "hallucinated_summary",
-                "labels": None,
+                "labels": "labels",
                 "correct_answer": "right_summary",
             },
             "general_data": {
                 "reference": None,
                 "query": "user_query",
                 "generations": "chatgpt_response",
-                "labels": "hallucination",
+                "labels": "labels",
                 "correct_answer": None,
             }
 
@@ -521,6 +521,7 @@ class QAGSData(ReadData):
         # print(self.data["label"].value_counts())
         # print(self.data)
         # print(self.data.columns)
+
 
 class ScreenEvalData(ReadData):
     def __init__(self, data_path=None):

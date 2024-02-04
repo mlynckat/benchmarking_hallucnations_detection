@@ -113,33 +113,24 @@ def main(benchmarks, methods):  # Added main function for better organization
                         os.path.join(output_dir, f"{method.__class__.__name__}_updated_data.csv"),
                         encoding="utf-8")
                     updated_data_exists = True
-                    starting_point = updated_data.shape[0]
                 else:
-                    starting_point = 0
                     updated_data_exists = False
 
-                """for step in range(starting_point, current_data.shape[0], 5):
-                    end_index = min(step + 5, current_data.shape[0] - 1)
-                    step_data = current_data.loc[step+1:end_index].apply(
-                        lambda row: apply_method(row, method, current_data_name),
-                        axis=1)
-                    # concat to th updated_data if exists
-                    if updated_data_exists:
-                        updated_data = pd.concat([updated_data, step_data], ignore_index=True)
-                    else:
-                        updated_data = step_data"""
-
-
                 for ind, row in current_data.iterrows():
-                    if row['query'] in updated_data['query'].values:
-                        print(f"Skipping {row['query']}")
+                    if updated_data_exists and row['query'] in updated_data['query'].values:
+                        logging.info(f"Skipping {row['query']}")
                         continue
                     else:
-                        print(f"Working on {row['query']}")
+                        logging.info(f"Working on {row['query']}")
                         row_data = apply_method(row, method, current_data_name)
-                        updated_data = pd.concat([updated_data, row_data], ignore_index=True)
+                        if updated_data_exists:
+                            updated_data = pd.concat([updated_data, row_data], ignore_index=True)
+                        else:
+                            updated_data = row_data
+                            updated_data_exists = True
                         updated_data.to_csv(os.path.join(output_dir, f"{method.__class__.__name__}_updated_data.csv"),
-                                    encoding="utf-8", index=False)
+                                            encoding="utf-8", index=False)
+
 
 
 if __name__ == "__main__":
@@ -157,3 +148,4 @@ if __name__ == "__main__":
 
     # Example:
     # python3 test.py --benchmarks SelfCheckGPT FELM --methods SAC3 LMvsLM
+
