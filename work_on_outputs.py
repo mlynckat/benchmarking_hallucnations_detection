@@ -6,6 +6,7 @@ from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler
 
 # Set seaborn style
 sns.set_style("white")
@@ -17,8 +18,7 @@ def invert_and_transform_prob(prob_col):
     return (prob_col < 0.5).astype(int)
 
 config = {
-    "SelfCheckGPT": {"columns": ["SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_nli", "SefCheckGPT_prompting",
-            "SefCheckGPT_max_ngram"],
+    "SelfCheckGPT": {"columns": ["SefCheckGPT_mqag", "SefCheckGPT_bertscore", "SefCheckGPT_max_ngram", "SefCheckGPT_nli", "SefCheckGPT_prompting"],
                      "transformation": ""},
     "SelfCheckGPT_10samples": {"columns": ["SefCheckGPT_mqag_10samples", "SefCheckGPT_bertscore_10samples",	"SefCheckGPT_ngram_10samples",	"SefCheckGPT_max_ngram_10_samples",	"SefCheckGPT_nli_10samples"],
                      "transformation": ""},
@@ -58,7 +58,6 @@ def calculate_correlation(numerical_labels, predictions):
     - pearson_corr: float, Pearson correlation coefficient
     - spearman_corr: float, Spearman correlation coefficient
     """
-
     # Calculate Pearson correlation coefficient
     pearson_corr, _ = pearsonr(numerical_labels, predictions)
 
@@ -133,6 +132,8 @@ def plot_boxplots_for_non_binary(labels, predictions, col_name, benchmark_name):
     # Show the plot
     plt.show()
 
+
+
 for path in ["outputs/SelfCheckGPT"]: #["outputs/BAMBOO_abshallu_4k", "outputs/BAMBOO_abshallu_16k", "outputs/BAMBOO_senhallu_4k", "outputs/BAMBOO_senhallu_4k"]:
     path_to_df = os.path.join(Path(path), "SelfCheckGPT_updated_data_reduced.csv")
     print(path_to_df)
@@ -142,7 +143,11 @@ for path in ["outputs/SelfCheckGPT"]: #["outputs/BAMBOO_abshallu_4k", "outputs/B
     for pred_col in config[method]["columns"]:
         if "labels" not in df.columns or pred_col not in df.columns:
             raise ValueError("Specified columns not found in the DataFrame.")
+
+
+
         else:
+
             pearson, spearman = calculate_correlation(df["labels"], df[pred_col])
             print(f"Pearson correlation between labels and {pred_col}: {pearson}")
             print(f"Spearmann correlation between labels and {pred_col}: {spearman}")

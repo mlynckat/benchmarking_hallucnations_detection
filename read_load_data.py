@@ -38,12 +38,13 @@ class ReadData:
 
         # Iterate through all elements
         for element in paragraphs:
-            if "References" in element.text:
+            if "References" in element.text or "Notes" in element.text or "External links" in element.text or "See also" in element.text:
                 break
             else:
                 output.append(element.text.replace("[edit]", "\n"))
-        #print(" ".join(output))
-        return " \n".join(output)
+        joint_output = " \n".join(output)
+        joint_output = re.sub(r'\s+', ' ', joint_output)
+        return joint_output
 
     def load_jsonl_data(self):
         """
@@ -554,6 +555,7 @@ class ScreenEvalData(ReadData):
         for col in data.keys():
             dict_data[col] = [data[col][id] for id in model_ids]
         self.data = pd.DataFrame(dict_data)
+        self.data['annotated_summary'] = self.data["annotated_summary"].str.replace('<mark>', '').str.replace('</mark>', '')
 
 
 

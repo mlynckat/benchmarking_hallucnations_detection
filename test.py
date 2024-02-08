@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import argparse
+import sys
 
 import pandas as pd
 
@@ -23,6 +24,7 @@ methods_map = {
     "lmvslm": LMvsLM,
     "alignscorer": AlignScorer,
     "selfcheckgpt": SelfCheckGPT,
+    "scalescorer": ScaleScorer
 }
 
 # load config.json
@@ -54,6 +56,8 @@ def get_query(row, benchmark):
         query = config[benchmark]['prompt'].format(prompt=row['query'])
     elif "FAVA" in benchmark:
         query = config[benchmark]['prompt'].format(prompt=row['query'])
+    elif "ScreenEval" in benchmark:
+        query = config[benchmark]['prompt'].format(prompt=row['query'], passage=row['references'])
     else:
         raise ValueError("Unknown benchmark")
     return query
@@ -68,7 +72,7 @@ def apply_method(row, method, benchmark):
     elif method.__class__.__name__ == "LMvsLM" or method.__class__.__name__ == "SAC3":
         query = get_query(row, benchmark)
         predictions = method.make_predictions(row, query=query, task=task)
-    elif method.__class__.__name__ == "AlignScorer":
+    elif method.__class__.__name__ == "AlignScorer" or method.__class__.__name__ == "ScaleScorer":
         query = None
         predictions = method.make_predictions(row, query=query)
     else:
@@ -96,7 +100,7 @@ def main(benchmarks, methods):  # Added main function for better organization
                     if config[current_data_name]["task"] == "summarization" or config[current_data_name][
                         "task"] == "dialogue":
                         continue
-                elif method.__class__.__name__ == "AlignScorer":
+                elif method.__class__.__name__ == "AlignScorer" or method.__class__.__name__ == "ScaleScorer":
                     if config[current_data_name]["task"] == "general_qa":
                         continue
                     else:
@@ -117,11 +121,11 @@ def main(benchmarks, methods):  # Added main function for better organization
                     updated_data_exists = False
 
                 for ind, row in current_data.iterrows():
-                    if updated_data_exists and row['query'] in updated_data['query'].values:
-                        logging.info(f"Skipping {row['query']}")
+                    if updated_data_exists and row['generations'] in updated_data['generations'].values:
+                        logging.info(f"Skipping {row['generations']}")
                         continue
                     else:
-                        logging.info(f"Working on {row['query']}")
+                        logging.info(f"Working on {row['generations']}")
                         row_data = apply_method(row, method, current_data_name)
                         if updated_data_exists:
                             updated_data = pd.concat([updated_data, row_data], ignore_index=True)

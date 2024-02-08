@@ -197,6 +197,7 @@ class SelfCheckMQAG:
             max_seq_length = 4096 # answering & answerability max length
             for question_item in questions:
                 question, options = question_item['question'], question_item['options']
+                print(f"Questions: {question} and Options: {options}")
                 # response
                 prob = answering(
                     self.a_model, self.a_tokenizer,

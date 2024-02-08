@@ -12,6 +12,7 @@ from methods.LMvsLM.LM_vs_LM import *
 from methods.sac3 import paraphraser
 from methods.sac3.consistency_checker import SemanticConsistnecyCheck
 from methods.sac3.evaluator import Evaluate
+from scale_score.scorer import SCALEScorer
 import logging
 
 # Configure logging
@@ -121,7 +122,7 @@ class SelfCheckGPT(Methods):
                 cost += chat_completion.usage.total_tokens
         else:
             raise ValueError("Invalid model_name")
-
+        samples = [sample.strip() for sample in samples]
         return samples, cost
 
     def prompting(self, sentences, samples):
@@ -136,7 +137,7 @@ class SelfCheckGPT(Methods):
             predictions_per_sentence = []
 
             for sample in samples[0:3]:
-                #logging.info(f"Prompt: {template.format(context=sample, sentence=sent)}")
+                logging.info(f"Prompt: {template.format(context=sample, sentence=sent)}")
                 response = self.client_prompting.chat.completions.create(
                     model="gpt-3.5-turbo-1106",
                     messages=[
@@ -144,6 +145,7 @@ class SelfCheckGPT(Methods):
                     ],
                     temperature=0)
                 cost += response.usage.total_tokens
+                logging.info(f"Responce prompting: {response.choices[0].message.content}")
                 decision = response.choices[0].message.content.split()[0]
                 if decision.lower() == "yes":
                     predictions_per_sentence.append(0)
@@ -452,6 +454,12 @@ class SAC3(Methods):
 class AlignScorer(Methods):
     def __init__(self):
         super().__init__()
+        self.scorer_base = AlignScore(model='roberta-base', batch_size=32, device='cuda:0',
+                            ckpt_path='methods/AlignScore/AlignScore-base.ckpt',
+                            evaluation_mode='nli_sp')
+        self.scorer_large = AlignScore(model='roberta-large', batch_size=32, device='cuda:0',
+                            ckpt_path='methods/AlignScore/AlignScore-large.ckpt',
+                            evaluation_mode='nli_sp')
 
     def make_predictions(self, row, query, model_name=None):
         logging.info(f"Query: {query}")
@@ -460,17 +468,38 @@ class AlignScorer(Methods):
 
         output_predictions = row.copy(deep=True)
 
-        scorer = AlignScore(model='roberta-base', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-base.ckpt',
-                            evaluation_mode='nli_sp')
-        score = scorer.score(contexts=[row['references']], claims=[row['generations']])
 
-        output_predictions['AlignScore-base'] = score[0]
+        score_base = self.scorer_base.score(contexts=[row['references']], claims=[row['generations']])
 
-        scorer = AlignScore(model='roberta-large', batch_size=32, device='cuda:0', ckpt_path='methods/AlignScore/AlignScore-large.ckpt',
-                            evaluation_mode='nli_sp')
-        score = scorer.score(contexts=[row['references']], claims=[row['generations']])
+        output_predictions['AlignScore-base'] = score_base[0]
 
-        output_predictions['AlignScore-large'] = score[0]
+
+        score_large = self.scorer_large.score(contexts=[row['references']], claims=[row['generations']])
+
+        output_predictions['AlignScore-large'] = score_large[0]
+
+        return output_predictions
+
+class ScaleScorer(Methods):
+    def __init__(self):
+        super().__init__()
+        self.scorer = SCALEScorer(size='large', device='cuda') # 'xl' 'large'
+        self.scorer_xl = SCALEScorer(size='xl', device='cuda')  # 'xl' 'large'
+        self.nlp = spacy.load("en_core_web_sm")
+
+    def make_predictions(self, row, query, model_name=None):
+        logging.info(f"Query: {query}")
+        logging.info(f"Generations: {row['generations']}")
+        logging.info(f"References: {row['references']}")
+        sentences = [sent.text.strip() for sent in self.nlp(row['generations'].strip()).sents]
+        output_predictions = row.copy(deep=True)
+
+
+        results = self.scorer.score(premise=[row["references"]], hypothesis=[sentences])
+        results_xl = self.scorer_xl.score(premise=[row["references"]], hypothesis=[sentences])
+
+        output_predictions['ScaleScorer-large'] = sum(results)/len(results)
+        output_predictions['ScaleScorer-xl'] = sum(results_xl) / len(results_xl)
 
         return output_predictions
 

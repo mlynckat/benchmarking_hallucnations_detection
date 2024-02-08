@@ -7,14 +7,14 @@ from methods_implementations import SelfCheckGPT
 
 # read pandas dataframe from csv
 
-path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data.csv"
+path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data_ngram.csv"
 
 df = pd.read_csv(path_to_df)
 print(f"The size of the dataset is {df.shape[0]}")
 
 # drop duplicates
-df = df.drop(['0'], axis=1)
-df = df.dropna(subset=['query', "additional_samples_gpt3"])
+#df = df.drop(['0'], axis=1)
+df = df.dropna(subset=['query', "additional_samples_gpt3", "SefCheckGPT_mqag"])
 df = df.drop_duplicates(subset=['query'], keep='first')
 df['additional_samples_gpt3'] = df['additional_samples_gpt3'].apply(ast.literal_eval)
 print(f"The size of the dataset is {df.shape[0]}")
@@ -38,8 +38,8 @@ if os.path.exists(os.path.join("outputs/SelfCheckGPT", f"{selfcheck.__class__.__
     updated_data = pd.read_csv(
         os.path.join(os.path.join("outputs/SelfCheckGPT", f"{selfcheck.__class__.__name__}_updated_data_reduced.csv")),
         encoding="utf-8")
-    updated_data = updated_data.drop(['0'], axis=1)
-    updated_data = updated_data.dropna(subset=['query', "additional_samples_gpt3"])
+    #updated_data = updated_data.drop(['0'], axis=1)
+    updated_data = updated_data.dropna(subset=['query', "additional_samples_gpt3", "SefCheckGPT_mqag"])
     updated_data_exists = True
     starting_point = updated_data.shape[0]
 else:

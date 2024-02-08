@@ -128,5 +128,20 @@
     "model_name": "chatgpt",
     "task": "general_qa",
     "prompt": "{prompt}"
+  },
+  "ScreenEval_longformer": {
+    "model_name": "longformer",
+    "task": "summarization",
+    "prompt": "{prompt}"
+  },
+  "ScreenEval_gpt4": {
+    "model_name": "gpt4",
+    "task": "summarization",
+    "prompt": "{prompt}"
+  },
+  "ScreenEval_human": {
+    "model_name": "human",
+    "task": "summarization",
+    "prompt": "{prompt}"
   }
 }
