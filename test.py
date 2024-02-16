@@ -65,11 +65,11 @@ def get_query(row, benchmark):
 
 def apply_method(row, method, benchmark):
     task = config[benchmark]['task']
-    if method.__class__.__name__ == "SelfCheckGPT":
+    if method.__class__.__name__ == "SelfCheckGPT" or method.__class__.__name__ == "SAC3":
         query = get_query(row, benchmark)
         model_name = config[benchmark]['model_name']
         predictions = method.make_predictions(row, query=query, model_name=model_name)
-    elif method.__class__.__name__ == "LMvsLM" or method.__class__.__name__ == "SAC3":
+    elif method.__class__.__name__ == "LMvsLM":
         query = get_query(row, benchmark)
         predictions = method.make_predictions(row, query=query, task=task)
     elif method.__class__.__name__ == "AlignScorer" or method.__class__.__name__ == "ScaleScorer":
