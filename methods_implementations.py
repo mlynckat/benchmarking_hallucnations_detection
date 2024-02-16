@@ -28,6 +28,7 @@ logging.basicConfig(
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
+PEPRLEXITY_API_KEY = os.getenv("PEPRLEXITY_API_KEY")
 print(torch.cuda.is_available())
 
 class Methods:
@@ -50,6 +51,7 @@ class SelfCheckGPT(Methods):
         self.selfcheck_nli = SelfCheckNLI(device="cuda" if torch.cuda.is_available() else "cpu")
         self.client = openai.OpenAI()
         self.client_prompting = openai.OpenAI()
+
 
     def generate_additional_samples(self, query, model_name, num_samples=10):
         samples = []
@@ -89,14 +91,25 @@ class SelfCheckGPT(Methods):
                 samples.append(response.choices[0].message.content)
                 cost += response.usage.total_tokens
         elif model_name == "perplexityAI":
+            client_perplexity = openai.OpenAI(api_key=PEPRLEXITY_API_KEY, base_url="https://api.perplexity.ai")
             for i in range(num_samples):
-                perplexity = Perplexity()
-                answer = perplexity.search(query)
-                for a in answer:
-                    if a["status"] == "completed":
-                        samples.append(a["answer"])
-                perplexity.close()
-                cost = 0
+                chat_completion = client_perplexity.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an AI assistant",
+                        },
+                        {
+                            "role": "user",
+                            "content": query,
+                        }
+                    ],
+                    model="pplx-70b-online",
+                    max_tokens=200,
+                    temperature=1,
+                )
+                samples.append(chat_completion.choices[0].message.content)
+                cost += chat_completion.usage.total_tokens
         elif model_name == "llama":
             for i in range(num_samples):
                 client = openai.OpenAI(api_key=TOGETHER_API_KEY,
@@ -294,7 +307,7 @@ class LMvsLM(Methods):
 
     def detect_hal(self, query, claim, task, reference):
         examiner = Examiner(claim, task, query=query, reference=reference)
-        examinee = Suspect(query, claim)
+        examinee = Suspect(query, claim, task, reference)
         question = examiner.Setup()
         trigger = True
         count = 1
@@ -302,7 +315,7 @@ class LMvsLM(Methods):
             count += 1
             answer = examinee.answer_without_history(question)
             flag = examiner.check_follow_up_question(answer)
-            if 'No' in flag or count == 5:
+            if 'Yes' not in flag or count == 10:
                 lawyer_history = examiner.decision()
                 trigger = False
             else:
@@ -361,49 +374,49 @@ class SAC3(Methods):
         logging.info(f"Generations: {row['generations']}")
         if row["labels"] or row["labels"]==0:
         # question perturbation
-            gen_question, cost_gen_question = paraphraser.paraphrase(question, number=3, model='gpt-3.5-turbo', temperature=1.0)
+            gen_question, cost_gen_question = paraphraser.paraphrase(query, number=3, model='chatgpt', temperature=1.0)
 
             # llm evaluation
-            llm_evaluate = Evaluate(model='gpt-3.5-turbo')
-            self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+            llm_evaluate = Evaluate(model=model_name)
+            self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=query, temperature=1.0, self_num=7)
             perb_responses, cost_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
             logging.info(f"Self responses: {self_responses}")
             logging.info(f"Perb responses: {perb_responses}")
 
             # consistency check
-            scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+            scc = SemanticConsistnecyCheck(model='chatgpt')
 
-            sc2_score, sc2_vote, cost_scoring_sc2 = scc.score_scc(question, target_answer, candidate_answers=self_responses, temperature=0.0)
+            sc2_score, sc2_vote, cost_scoring_sc2 = scc.score_scc(query, target_answer, candidate_answers=self_responses, temperature=0.0)
             print(sc2_score, sc2_vote)
 
-            sac3_q_score, sac3_q_vote, cost_scoring_sac3 = scc.score_scc(question, target_answer, candidate_answers=perb_responses,
+            sac3_q_score, sac3_q_vote, cost_scoring_sac3 = scc.score_scc(query, target_answer, candidate_answers=perb_responses,
                                                       temperature=0.0)
             print(sac3_q_score, sac3_q_vote)
 
             # llm SAC3 QM evaluation
             llm_evaluate = Evaluate(model='falcon-7b')
-            falcon_responses, falcon_cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+            falcon_responses, falcon_cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=7)
             falcon_perb_responses, falcon_cost = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
             all_resp_falcon = falcon_responses + falcon_perb_responses
             logging.info(f"Falcon responses: {all_resp_falcon}")
 
-            scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+            scc = SemanticConsistnecyCheck(model='chatgpt')
 
             sac3_qm_falcon_score, sac3_qm_falcon_vote, cost_scoring_sac3_falcon = scc.score_scc(question, target_answer, candidate_answers=all_resp_falcon,
                                                       temperature=0.0)
 
             # llm SAC3 QM evaluation
             llm_evaluate = Evaluate(model='starling-7b')
-            starling_responses, cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=3)
+            starling_responses, cost = llm_evaluate.self_evaluate(self_question=question, temperature=1.0, self_num=7)
             starling_perb_responses, cost = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
             all_resp_starling = starling_responses + starling_perb_responses
 
             logging.info(f"Starling responses: {all_resp_starling}")
 
-            scc = SemanticConsistnecyCheck(model='gpt-3.5-turbo')
+            scc = SemanticConsistnecyCheck(model='chatgpt')
 
             sac3_qm_starling_score, sac3_qm_starling_vote, cost_scoring_sac3_starling = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
                                                         temperature=0.0)
@@ -468,16 +481,21 @@ class AlignScorer(Methods):
 
         output_predictions = row.copy(deep=True)
 
+        if row[("generations")] and row[("references")]:
 
-        score_base = self.scorer_base.score(contexts=[row['references']], claims=[row['generations']])
+            score_base = self.scorer_base.score(contexts=[row['references']], claims=[row['generations']])
 
-        output_predictions['AlignScore-base'] = score_base[0]
+            output_predictions['AlignScore-base'] = score_base[0]
 
 
-        score_large = self.scorer_large.score(contexts=[row['references']], claims=[row['generations']])
+            score_large = self.scorer_large.score(contexts=[row['references']], claims=[row['generations']])
 
-        output_predictions['AlignScore-large'] = score_large[0]
+            output_predictions['AlignScore-large'] = score_large[0]
 
+
+        else:
+            output_predictions['AlignScore-base'] = None
+            output_predictions['AlignScore-large'] = None
         return output_predictions
 
 class ScaleScorer(Methods):
@@ -494,12 +512,17 @@ class ScaleScorer(Methods):
         sentences = [sent.text.strip() for sent in self.nlp(row['generations'].strip()).sents]
         output_predictions = row.copy(deep=True)
 
+        if row[("generations")] and row[("references")]:
 
-        results = self.scorer.score(premise=[row["references"]], hypothesis=[sentences])
-        results_xl = self.scorer_xl.score(premise=[row["references"]], hypothesis=[sentences])
 
-        output_predictions['ScaleScorer-large'] = sum(results)/len(results)
-        output_predictions['ScaleScorer-xl'] = sum(results_xl) / len(results_xl)
+            results = self.scorer.score(premise=[row["references"]], hypothesis=[sentences])
+            results_xl = self.scorer_xl.score(premise=[row["references"]], hypothesis=[sentences])
+
+            output_predictions['ScaleScorer-large'] = sum(results)/len(results)
+            output_predictions['ScaleScorer-xl'] = sum(results_xl) / len(results_xl)
+        else:
+            output_predictions['ScaleScorer-large'] = None
+            output_predictions['ScaleScorer-xl'] = None
 
         return output_predictions
 

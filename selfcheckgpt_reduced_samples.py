@@ -7,14 +7,14 @@ from methods_implementations import SelfCheckGPT
 
 # read pandas dataframe from csv
 
-path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data_ngram.csv"
+path_to_df = "outputs/SelfCheckGPT/SelfCheckGPT_updated_data_reduced.csv"
 
 df = pd.read_csv(path_to_df)
 print(f"The size of the dataset is {df.shape[0]}")
 
 # drop duplicates
-#df = df.drop(['0'], axis=1)
-df = df.dropna(subset=['query', "additional_samples_gpt3", "SefCheckGPT_mqag"])
+df = df.drop(['0', "SefCheckGPT_ngram_new", "SefCheckGPT_max_ngram"], axis=1)
+#df = df.dropna(subset=['query', "additional_samples_gpt3", "SefCheckGPT_mqag"])
 df = df.drop_duplicates(subset=['query'], keep='first')
 df['additional_samples_gpt3'] = df['additional_samples_gpt3'].apply(ast.literal_eval)
 print(f"The size of the dataset is {df.shape[0]}")

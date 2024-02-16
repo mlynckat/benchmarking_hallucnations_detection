@@ -5,6 +5,7 @@ import os
 
 import openai
 import torch
+from dotenv import load_dotenv
 from peft import PeftModel
 import transformers
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -13,6 +14,8 @@ import time
 
 # Initialize OpenAI API
 # openai.api_key = 'your openai key'
+load_dotenv()
+TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 
 def call_openai_model(prompt, model, temperature):
     client = openai.OpenAI()
@@ -62,18 +65,9 @@ def call_guanaco_33b(prompt, max_new_tokens):
     return output, 0
 
 
-def call_falcon_7b(prompt, max_new_tokens):
+def call_falcon_7b(pipeline, tokenizer, prompt, max_new_tokens):
     # 16 float
-    model = "tiiuae/falcon-7b-instruct"
-    tokenizer = AutoTokenizer.from_pretrained(model)
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        #torch_dtype=torch.bfloat16,
-        #trust_remote_code=True,
-        device_map="auto"
-    )
+
     sequences = pipeline(
         prompt,
         max_new_tokens=max_new_tokens,
@@ -90,22 +84,14 @@ def call_falcon_7b(prompt, max_new_tokens):
 
     return res, 0
 
-def call_starling_7b(prompt, max_new_tokens):
-    # 16 float
-    model = "berkeley-nest/Starling-LM-7B-alpha"
-    tokenizer = AutoTokenizer.from_pretrained(model)
-    pipeline = transformers.pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        #torch_dtype=torch.bfloat16,
-        device_map="auto"
-    )
+def call_starling_7b(pipeline, tokenizer, prompt, max_new_tokens, temperature):
     sequences = pipeline(
         f"GPT4 Correct User: {prompt}<|end_of_turn|>GPT4 Correct Assistant: ",
         max_length=256,
         pad_token_id=tokenizer.pad_token_id,
-        eos_token_id=tokenizer.eos_token_id
+        eos_token_id=tokenizer.eos_token_id,
+        do_sample=True,
+        temperature=temperature,
     )
     for seq in sequences:
         print(f"Sequence: {seq['generated_text']}")
@@ -114,3 +100,32 @@ def call_starling_7b(prompt, max_new_tokens):
     print(f"Result: {res}")
 
     return res, 0
+
+def call_llama(prompt, temperature):
+    client = openai.OpenAI(api_key=TOGETHER_API_KEY,
+                           base_url='https://api.together.xyz',
+                           )
+
+    chat_completion = client.chat.completions.create(
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an AI assistant",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        model="meta-llama/Llama-2-70b-chat-hf",
+        max_tokens=256,
+        temperature=temperature,
+    )
+    try:
+        output = chat_completion.choices[0].message.content
+        cost = chat_completion.usage.total_tokens
+    except Exception:
+        output = 'do not have reponse from llama'
+        cost = 0
+
+    return output, cost

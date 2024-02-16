@@ -528,19 +528,16 @@ class ScreenEvalData(ReadData):
     def __init__(self, data_path=None):
         super().__init__(data_path)
         self.references_col = 'original_convo'
-        self.generations_col = 'annotated_summary'
+        self.generations_col = 'inferred_summary'
         self.labels_col = 'agg_label'
         self.query_col = None
         self.correct_answer_col = None
 
     def transform_labels(self, label):
         if label:
-            if False in label:
-                return 1
-            else:
-                return 0
+            return 0
         else:
-            return None
+            return 1
 
     def load(self, model):
         with open(self.data_path, 'r', encoding='utf-8') as f:
@@ -555,7 +552,8 @@ class ScreenEvalData(ReadData):
         for col in data.keys():
             dict_data[col] = [data[col][id] for id in model_ids]
         self.data = pd.DataFrame(dict_data)
-        self.data['annotated_summary'] = self.data["annotated_summary"].str.replace('<mark>', '').str.replace('</mark>', '')
+        #self.data['annotated_summary'] = self.data["annotated_summary"].str.replace('<mark>', '').str.replace('</mark>', '')
+        self.data["agg_label"] = self.data["agg_label"].apply(lambda x: self.transform_labels(x))
 
 
 
