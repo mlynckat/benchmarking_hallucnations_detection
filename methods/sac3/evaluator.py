@@ -55,7 +55,7 @@ class Evaluate:
                 res, cost = llm_models.call_falcon_7b(self.pipeline, self.tokenizer, prompt, max_new_tokens=200)
             elif self.model == 'starling-7b':
                 res, cost = llm_models.call_starling_7b(self.pipeline, self.tokenizer, prompt, temperature=1, max_new_tokens=200)
-            elif self.model == 'meta-llama/Llama-2-70b-chat-hf':
+            elif self.model == 'llama':
                 res, cost = llm_models.call_llama(prompt, temperature)
             # other open-sourced llms
             self_responses.append(res)
