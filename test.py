@@ -112,9 +112,9 @@ def main(benchmarks, methods):  # Added main function for better organization
                         continue
 
                 # check if file exists
-                if os.path.exists(os.path.join(output_dir, f"{method.__class__.__name__}_updated_data.csv")):
+                if os.path.exists(os.path.join(output_dir, f"{method.__class__.__name__}_updated_data_add.csv")):
                     updated_data = pd.read_csv(
-                        os.path.join(output_dir, f"{method.__class__.__name__}_updated_data.csv"),
+                        os.path.join(output_dir, f"{method.__class__.__name__}_updated_data_add.csv"),
                         encoding="utf-8")
                     updated_data_exists = True
                 else:
@@ -132,7 +132,7 @@ def main(benchmarks, methods):  # Added main function for better organization
                         else:
                             updated_data = row_data
                             updated_data_exists = True
-                        updated_data.to_csv(os.path.join(output_dir, f"{method.__class__.__name__}_updated_data.csv"),
+                        updated_data.to_csv(os.path.join(output_dir, f"{method.__class__.__name__}_updated_data_add.csv"),
                                             encoding="utf-8", index=False)
 
 

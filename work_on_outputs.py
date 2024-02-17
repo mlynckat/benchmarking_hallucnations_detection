@@ -33,7 +33,7 @@ def transform_PHD_labels(label):
     elif "True" in str(label):
         return 0
     else:
-        return label
+        return int(label)
 
 def calculate_average_label(label):
     # parse as list of lists
@@ -47,11 +47,12 @@ def calculate_average_label(label):
         return label
 
 def transform_labels_FactScore(annotations):
-    if annotations == 0 or annotations == 1:
-        return annotations
+    if annotations == 0.0 or annotations == 1.0 or annotations == "0.0" or annotations == "1.0":
+        return float(annotations)
     else:
         labels = []
         if annotations == annotations:
+            annotations = ast.literal_eval(annotations)
             for annotation in annotations:
                 if "human-atomic-facts" in annotation:
                     human_atomic_facts = annotation["human-atomic-facts"]
@@ -74,8 +75,8 @@ def transform_labels_FactScore(annotations):
             return None
 
 def transform_labels_FELM(label):
-    if label == 0 or label == 1:
-        return label
+    if label == 0 or label == 1 or label == "0" or label == "1":
+        return int(label)
     if label:
         if "False" in label:
             return 1
@@ -85,8 +86,8 @@ def transform_labels_FELM(label):
         return None
 
 def transform_labels_FAVA(label):
-    if label == 0 or label == 1:
-        return label
+    if label == 0 or label == 1 or label == "0" or label == "1":
+        return int(label)
 
     else:
         # Define the pattern using regular expression to capture any text between < and >
@@ -94,6 +95,7 @@ def transform_labels_FAVA(label):
         # Search for the pattern in the input string
         match = re.search(pattern, label)
         # If a match is found, return 1; otherwise, return 0
+        print(label, 1 if match else 0)
         return 1 if match else 0
 
 def transform_labels_BAMBOO(label):
@@ -139,7 +141,7 @@ config = {
                         "transformation": return_original, "thresholds": {"SefCheckGPT_mqag": 0.5, "SefCheckGPT_bertscore": 0.5, "SefCheckGPT_max_ngram": 0.5, "SefCheckGPT_nli": 0.5, "SefCheckGPT_prompting": 0.5}},
     "LMvsLM": {"columns": ["LMvsLM_label"],
                "transformation": transform_factual_to_int, "thresholds": {"LMvsLM_label": 0.5}},
-    "SAC3": {"columns": ["sc2_score", "sac3_q_score", "sac3_qm(falcon)_score", "sac3_qm(starling)_score"],
+    "SAC3": {"columns": ["sc2_score_short", "sac3_q_score_short", "sac3_qm(falcon)_score_short", "sac3_qm(starling)_score_short"],
              "transformation": return_original, "thresholds": {"sc2_score": 0.5, "sac3_q_score": 0.5, "sac3_qm(falcon)_score": 0.5, "sac3_qm(starling)_score": 0.5}},
     "AlignScorer": {"columns": ["AlignScore-base", "AlignScore-large"],
                     "transformation": invert_prob, "thresholds": {"AlignScore-base": 0.5, "AlignScore-large": 0.5}},
@@ -210,6 +212,8 @@ def get_data(path_to_df, method, benchmark):
     #print(f"Dropped: {df[~df.index.isin(na_free.index)]['generations']}")
     duplicates_free = na_free.drop_duplicates(subset=['generations'], keep='first')
     print(f"The size of the dataset is after removing duplicates: {duplicates_free.shape[0]}")
+    # get number of samples with labels==1
+
     #print(f"Dropped: {na_free[~na_free.index.isin(duplicates_free.index)]['generations']}")
     return duplicates_free
 
@@ -286,7 +290,8 @@ def calculate_aucroc(labels, predictions, benchmark, method):
     reference_binary_int = config_benchmarks[benchmark]["reference_binary"]
     if not reference_binary_int:
         labels = labels.apply(config_benchmarks[benchmark]["transformation_labels"])
-
+    #print number of labels==1
+    print(f"Number of samples with labels==1: {labels[labels==1].shape[0]}")
 
     predictions = predictions.apply(config[method]["transformation"])
     try:
@@ -376,8 +381,8 @@ def plot_scatter(df, ref_col, column1, column2):
     plt.grid(True)
     plt.show()
 
-for score in ["SelfCheckGPT"]:
-    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"]: # "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_4k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data" "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
+for score in ["SAC3"]:
+    for dataset in ["FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"]: #SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", , "FAVA_llama",   "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_4k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data" "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
         if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
             path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
         else:
@@ -429,12 +434,12 @@ for score in ["SelfCheckGPT"]:
                 except:
                     print(f"ROC-AUC score between labels and {pred_col}: {rocauc}")
 
-                # accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df["labels"], df[pred_col], benchmark, method, pred_col)
-                # print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
-                # print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
-                # print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
-                # #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
-                # #plot_boxplots_for_non_binary(df["labels"], df[pred_col], pred_col, path.split("/")[-1])
+                #accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df["labels"], df[pred_col], benchmark, method, pred_col)
+                #print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
+                #print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
+                #print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
+                #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
+                #plot_boxplots_for_non_binary(df["labels"], df[pred_col], pred_col, path.split("/")[-1])
                 print("-"*50)
 
         # if benchmark == "FactScore":

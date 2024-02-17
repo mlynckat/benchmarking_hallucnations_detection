@@ -291,6 +291,7 @@ class FactScoreData(ReadData):
         labels = []
         if annotations:
             for annotation in annotations:
+                print(annotation)
                 if "human-atomic-facts" in annotation:
                     human_atomic_facts = annotation["human-atomic-facts"]
                     if human_atomic_facts:
