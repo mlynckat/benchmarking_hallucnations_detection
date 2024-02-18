@@ -24,6 +24,13 @@ def load_data_by_name(dataset_name):
             data.load()
             output = data.read_data()
             dataset_output[f"HaluEval_{path_to_dataset.stem}"] = output
+    elif dataset_name == "halueval_correct":
+        for path_to_dataset in Path("data/HaluEval").glob("*"):
+            print(f"HaluEval_correct_{path_to_dataset.stem}")
+            data = HaluEvalCorrectData(path_to_dataset)
+            data.load()
+            output = data.read_data()
+            dataset_output[f"HaluEval_correct_{path_to_dataset.stem}"] = output
     elif dataset_name == "bamboo":
         for path_to_dataset in Path("data/BAMBOO").glob("*"):
             print(f"BAMBOO_{path_to_dataset.stem}")

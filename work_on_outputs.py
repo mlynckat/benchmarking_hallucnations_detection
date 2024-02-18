@@ -141,7 +141,7 @@ config = {
                         "transformation": return_original, "thresholds": {"SefCheckGPT_mqag": 0.5, "SefCheckGPT_bertscore": 0.5, "SefCheckGPT_max_ngram": 0.5, "SefCheckGPT_nli": 0.5, "SefCheckGPT_prompting": 0.5}},
     "LMvsLM": {"columns": ["LMvsLM_label"],
                "transformation": transform_factual_to_int, "thresholds": {"LMvsLM_label": 0.5}},
-    "SAC3": {"columns": ["sc2_score_short", "sac3_q_score_short", "sac3_qm(falcon)_score_short", "sac3_qm(starling)_score_short"],
+    "SAC3": {"columns": ["sc2_score_short", "sac3_q_score_short", "sac3_qm(starling)_score_short", "sac3_score(all)_short"],
              "transformation": return_original, "thresholds": {"sc2_score": 0.5, "sac3_q_score": 0.5, "sac3_qm(falcon)_score": 0.5, "sac3_qm(starling)_score": 0.5}},
     "AlignScorer": {"columns": ["AlignScore-base", "AlignScore-large"],
                     "transformation": invert_prob, "thresholds": {"AlignScore-base": 0.5, "AlignScore-large": 0.5}},

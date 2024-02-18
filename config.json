@@ -59,6 +59,22 @@
     "task": "summarization",
     "prompt": "Please write a summary for the following passage: {passage}."
   },
+  ,
+  "HaluEval_correct_dialogue_data": {
+    "model_name": "chatgpt",
+    "task": "dialogue",
+    "prompt": "Please continue the following conversation using the following knowledge. \nConversation: {message_history}. \nKnowledge: {knowledge}."
+  },
+  "HaluEval_correct_qa_data": {
+    "model_name": "chatgpt",
+    "task": "question_answering",
+    "prompt": "Please answer the following question based on the following passage. \nQuestion: {question}. \nPassage: {passage}."
+  },
+  "HaluEval_correct_summarization_data": {
+    "model_name": "chatgpt",
+    "task": "summarization",
+    "prompt": "Please write a summary for the following passage: {passage}."
+  },
   "FELM_math": {
     "model_name": "chatgpt",
     "task": "general_qa",

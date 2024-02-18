@@ -50,6 +50,7 @@ for dataset in ["FAVA_chatgpt", "FAVA_llama", "FELM_math", "FELM_reasoning", "FE
     df_updated["sac3_score(all)"] = df_updated["sac3_vote(all)"].apply(lambda x: sum(x) / len(x))
     df_updated["sac3_vote(all_no_perb)"] = df_updated["sac3_q_vote"] + df_updated["starling_self"]
     df_updated["sac3_score(all_no_perb)"] = df_updated["sac3_vote(all_no_perb)"].apply(lambda x: sum(x) / len(x))
-
+    df_updated["sac3_vote(all)_short"] = df_updated["sac3_q_vote_short"] + df_updated["sac3_qm(starling)_vote_short"]
+    df_updated["sac3_score(all)_short"] = df_updated["sac3_vote(all)_short"].apply(lambda x: sum(x) / len(x))
 
     df_updated.to_csv(os.path.join("outputs", dataset, "SAC3_updated_data.csv"), encoding="utf-8", index=False)

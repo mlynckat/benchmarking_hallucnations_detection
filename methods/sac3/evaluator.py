@@ -45,7 +45,7 @@ class Evaluate:
 
         for i in range(self_num):
             # llm model: GPTs, open-source models (falcon, guanaco)
-            if self.model == "chatgpt":
+            if self.model == "chatgpt" or self.model == "perplexityAI":
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo", temperature)  # openai model call
             elif self.model == 'gpt3':
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo-instruct", temperature)
@@ -77,7 +77,7 @@ class Evaluate:
         for i in range(len(perb_questions)):
             prompt = self.prompt_temp + '\nQ:' + perb_questions[i]
             # llm model: GPTs, open-source models (falcon, guanaco)
-            if self.model == "chatgpt":
+            if self.model == "chatgpt" or self.model == "perplexityAI":
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo", temperature)  # openai model call
             elif self.model == 'gpt3':
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo-instruct", temperature)

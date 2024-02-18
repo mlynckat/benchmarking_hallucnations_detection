@@ -196,7 +196,45 @@ class HaluEvalData(ReadData):
         elif self.data_type == "general_data":
             self.data["labels"] = self.data["hallucination"].apply(lambda x: self.transform_labels(x))
 
+class HaluEvalCorrectData(ReadData):
+    def __init__(self, data_path=None):
+        super().__init__(data_path)
+        self.data_path = Path(self.data_path)
+        self.fields = {
+            "qa_data": {
+                "reference": "knowledge",
+                "query": "question",
+                "generations": "right_answer",
+                "labels": "labels",
+                "correct_answer": None,
+            },
+            "dialogue_data": {
+                "reference": "knowledge",
+                "query": "dialogue_history",
+                "generations": "right_response",
+                "labels": "labels",
+                "correct_answer": None,
+            },
+            "summarization_data": {
+                "reference": "document",
+                "query": None,
+                "generations": "right_summary",
+                "labels": "labels",
+                "correct_answer": None,
+            }
 
+        }
+        self.data_type = self.data_path.stem
+        if self.data_type in ["qa_data", "dialogue_data", "summarization_data"]:
+            self.references_col = self.fields[self.data_type]['reference']
+            self.generations_col = self.fields[self.data_type]['generations']
+            self.labels_col = self.fields[self.data_type]['labels']
+            self.query_col = self.fields[self.data_type]['query']
+            self.correct_answer_col = self.fields[self.data_type]['correct_answer']
+
+    def load(self):
+        self.load_jsonl_data()
+        self.data["labels"] = 0
 
 class BAMBOOData(ReadData):
     def __init__(self, data_path=None):

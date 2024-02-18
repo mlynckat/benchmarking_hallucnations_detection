@@ -378,7 +378,7 @@ class SAC3(Methods):
 
             # llm evaluation
             llm_evaluate = Evaluate(model=model_name)
-            #self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=query, temperature=1.0, self_num=7)
+            self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=query, temperature=1.0, self_num=7)
             perb_responses, cost_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
             #logging.info(f"Self responses: {self_responses}")
@@ -387,7 +387,7 @@ class SAC3(Methods):
             # consistency check
             scc = SemanticConsistnecyCheck(model='chatgpt')
 
-            #sc2_score, sc2_vote, cost_scoring_sc2 = scc.score_scc(query, target_answer, candidate_answers=self_responses, temperature=0.0)
+            sc2_score, sc2_vote, cost_scoring_sc2 = scc.score_scc(query, target_answer, candidate_answers=self_responses, temperature=0.0)
             #print(sc2_score, sc2_vote)
 
             sac3_q_score, sac3_q_vote, cost_scoring_sac3 = scc.score_scc(query, target_answer, candidate_answers=perb_responses,
@@ -421,10 +421,10 @@ class SAC3(Methods):
             sac3_qm_starling_score, sac3_qm_starling_vote, cost_scoring_sac3_starling = scc.score_scc(question, target_answer, candidate_answers=all_resp_starling,
                                                         temperature=0.0)
             output_predictions['gen_questions'] = gen_question
-            #output_predictions['self_responses'] = self_responses
+            output_predictions['self_responses'] = self_responses
             output_predictions['perb_responses'] = perb_responses
-            #output_predictions['sc2_score'] = sc2_score
-            #output_predictions['sc2_vote'] = sc2_vote
+            output_predictions['sc2_score'] = sc2_score
+            output_predictions['sc2_vote'] = sc2_vote
             output_predictions['sac3_q_score'] = sac3_q_score
             output_predictions['sac3_q_vote'] = sac3_q_vote
             #output_predictions['falcon_responses'] = falcon_responses
