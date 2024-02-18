@@ -378,7 +378,7 @@ class SAC3(Methods):
 
             # llm evaluation
             llm_evaluate = Evaluate(model=model_name)
-            self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=query, temperature=1.0, self_num=7)
+            self_responses, cost_self_responses = llm_evaluate.self_evaluate(self_question=query, temperature=1.0, self_num=3)
             perb_responses, cost_perb_responses = llm_evaluate.perb_evaluate(perb_questions=gen_question, temperature=0.0)
 
             #logging.info(f"Self responses: {self_responses}")

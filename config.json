@@ -59,7 +59,6 @@
     "task": "summarization",
     "prompt": "Please write a summary for the following passage: {passage}."
   },
-  ,
   "HaluEval_correct_dialogue_data": {
     "model_name": "chatgpt",
     "task": "dialogue",

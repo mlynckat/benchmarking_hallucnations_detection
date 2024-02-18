@@ -232,6 +232,7 @@ class HaluEvalCorrectData(ReadData):
             self.query_col = self.fields[self.data_type]['query']
             self.correct_answer_col = self.fields[self.data_type]['correct_answer']
 
+
     def load(self):
         self.load_jsonl_data()
         self.data["labels"] = 0

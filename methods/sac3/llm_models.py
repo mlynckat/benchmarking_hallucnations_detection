@@ -35,6 +35,21 @@ def call_openai_model(prompt, model, temperature):
         cost = 0
     return output, cost
 
+def call_gpt3_model(prompt, model, temperature):
+    client = openai.OpenAI()
+    response = client.completions.create(
+        model=model,
+        prompt=prompt,
+        temperature=temperature,
+        max_tokens=200)
+    try:
+        output = response.choices[0].message.content
+        cost = response.usage.total_tokens
+    except Exception:
+        output = 'do not have reponse from chatgpt'
+        cost = 0
+    return output, cost
+
 
 def call_guanaco_33b(prompt, max_new_tokens):
     # 16 float
