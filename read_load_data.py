@@ -320,7 +320,7 @@ class PHDData(ReadData):
 class FactScoreData(ReadData):
     def __init__(self, data_path=None):
         super().__init__(data_path)
-        self.references_col = 'article'
+        self.references_col = None
         self.generations_col = 'output'
         self.labels_col = 'label'
         self.query_col = 'input'
@@ -401,7 +401,7 @@ class FactScoreData(ReadData):
 
     def load(self):
         self.load_jsonl_data()
-        self.data["article"] = self.data["topic"].apply(lambda x: self.get_wiki_article(x))
+        #self.data["article"] = self.data["topic"].apply(lambda x: self.get_wiki_article(x))
         self.data["label"] = self.data["annotations"].apply(lambda x: self.transform_labels(x))
 
 
