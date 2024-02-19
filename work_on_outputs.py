@@ -110,13 +110,16 @@ def transform_labels_BAMBOO(label):
             return None
 
 def transform_labels_ScreenEval(label):
-    if label == 0 or label == 1:
-        return label
-    else:
+    if type(label) == int:
+        if label == 0 or label == 1:
+            return label
+    elif type(label) == bool:
         if label:
             return 0
         else:
             return 1
+    else:
+        return label
 
 def transform_labels_HaluEval(label):
     if label == 0 or label == 1:
@@ -141,7 +144,7 @@ config = {
                         "transformation": return_original, "thresholds": {"SefCheckGPT_mqag": 0.5, "SefCheckGPT_bertscore": 0.5, "SefCheckGPT_max_ngram": 0.5, "SefCheckGPT_nli": 0.5, "SefCheckGPT_prompting": 0.5}},
     "LMvsLM": {"columns": ["LMvsLM_label"],
                "transformation": transform_factual_to_int, "thresholds": {"LMvsLM_label": 0.5}},
-    "SAC3": {"columns": ["sc2_score_short", "sac3_q_score_short", "sac3_qm(starling)_score_short", "sac3_score(all)_short"],
+    "SAC3": {"columns": ["sc2_score", "sac3_q_score", "sac3_qm(starling)_score", "sac3_score(all)"],
              "transformation": return_original, "thresholds": {"sc2_score": 0.5, "sac3_q_score": 0.5, "sac3_qm(falcon)_score": 0.5, "sac3_qm(starling)_score": 0.5}},
     "AlignScorer": {"columns": ["AlignScore-base", "AlignScore-large"],
                     "transformation": invert_prob, "thresholds": {"AlignScore-base": 0.5, "AlignScore-large": 0.5}},
@@ -381,12 +384,14 @@ def plot_scatter(df, ref_col, column1, column2):
     plt.grid(True)
     plt.show()
 
+
 for score in ["SAC3"]:
-    for dataset in ["FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"]: #SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", , "FAVA_llama",   "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_4k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data" "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
+    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w",
+                    "FactScore_PerplexityAI"]:  # "FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec" "FactScore_InstructGPT", "FactScore_ChatGPT", "BAMBOO_abshallu_4k",  "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"
         if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
             path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
         else:
-            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data.csv")
+            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_new_starling.csv")
         if "PHD" in dataset:
             print(f"Dataset name: {dataset_names_phd[dataset]}.")
         else:

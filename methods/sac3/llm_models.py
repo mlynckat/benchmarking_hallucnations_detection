@@ -43,8 +43,8 @@ def call_gpt3_model(prompt, model, temperature):
         temperature=temperature,
         max_tokens=200)
     try:
-        output = response.choices[0].message.content
-        cost = response.usage.total_tokens
+        output = response.choices[0].text
+        cost = 0#response.usage.total_tokens
     except Exception:
         output = 'do not have reponse from chatgpt'
         cost = 0

@@ -48,7 +48,7 @@ class Evaluate:
             if self.model == "chatgpt" or self.model == "perplexityAI":
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo", temperature)  # openai model call
             elif self.model == 'gpt3':
-                res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo-instruct", temperature)
+                res, cost = llm_models.call_gpt3_model(prompt, "gpt-3.5-turbo-instruct", temperature)
             elif self.model == 'guanaco-33b':
                 res, cost = llm_models.call_guanaco_33b(prompt, max_new_tokens=200)
             elif self.model == 'falcon-7b':
@@ -80,7 +80,7 @@ class Evaluate:
             if self.model == "chatgpt" or self.model == "perplexityAI":
                 res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo", temperature)  # openai model call
             elif self.model == 'gpt3':
-                res, cost = llm_models.call_openai_model(prompt, "gpt-3.5-turbo-instruct", temperature)
+                res, cost = llm_models.call_gpt3_model(prompt, "gpt-3.5-turbo-instruct", temperature)
             elif self.model == 'guanaco-33b':
                 res, cost = llm_models.call_guanaco_33b(prompt, max_new_tokens=200)
             elif self.model == 'falcon-7b':
