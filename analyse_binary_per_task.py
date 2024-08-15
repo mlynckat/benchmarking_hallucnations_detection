@@ -7,7 +7,7 @@ import imblearn
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, roc_curve
+from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score, roc_curve, confusion_matrix
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -255,6 +255,9 @@ def calculate_gmean(recall, specificity):
 
 
 def find_optimal_threshold(y_true, y_prob):
+    # flatten list of lists
+    y_true = [item for sublist in y_true for item in sublist]
+    y_prob = [item for sublist in y_prob for item in sublist]
     fpr, tpr, thresholds = roc_curve(y_true, y_prob)
     #print(f"FPR: {fpr}")
     #print(f"TPR: {tpr}")
@@ -266,25 +269,9 @@ def find_optimal_threshold(y_true, y_prob):
     gmeanOpt = round(gmean[index], ndigits=4)
     return best_threshold, gmeanOpt
 
-def get_optimal_thresholds(labels, predictions, method, benchmark):
+def get_optimal_thresholds(labels, predictions, best_threshold):
 
-    reference_binary_int = config_benchmarks[benchmark]["reference_binary"]
-    if not reference_binary_int:
-        labels = labels.apply(config_benchmarks[benchmark]["transformation_labels"])
-
-    #print(labels.value_counts())
-
-    # print number of labels==1
-    print(f"Number of samples with labels==1: {labels[labels == 1].shape[0]}")
-    predictions = predictions.apply(config[method]["transformation"])
-    # compare to threshold and transform to binary
-    if method == "LMvsLM":
-        best_predictions = predictions
-        best_threshold = 0.5
-        best_gmean = calculate_gmean(labels, best_predictions)
-    else:
-        best_threshold, best_gmean = find_optimal_threshold(labels, predictions)
-        best_predictions = predictions.apply(lambda x: int(x >= best_threshold))
+    best_predictions = predictions.apply(lambda x: int(x >= best_threshold))
     #print(best_predictions.value_counts())
     # Calculate evaluation metrics
     accuracy = accuracy_score(labels, best_predictions)
@@ -299,31 +286,85 @@ def get_optimal_thresholds(labels, predictions, method, benchmark):
 
     return accuracy, precision, recall, f1_score_val, best_threshold, gmean, hall_samples
 
+def get_inputs(labels, predictions, method, benchmark):
+
+    reference_binary_int = config_benchmarks[benchmark]["reference_binary"]
+    if not reference_binary_int:
+        labels = labels.apply(config_benchmarks[benchmark]["transformation_labels"])
+    print(f"Number of samples with labels==1: {labels[labels == 1].shape[0]}")
+    predictions = predictions.apply(config[method]["transformation"])
+
+
+    return labels, predictions
+
+
+
+
+"""
+["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI",
+ "FAVA_chatgpt", "FAVA_llama", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec",
+ "HaluEval_dialogue_data", "HaluEval_qa_data", "HaluEval_summarization_data", "BAMBOO_abshallu_4k",
+ "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4",
+ "ScreenEval_human"]:  """
+
+all_tasks_data = {
+    "text_generation": {
+        "datasets": ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT"],
+        "scores": ["SelfCheckGPT", "SAC3", "LMvsLM", "AlignScorer", "ScaleScorer"]
+    },
+    "question_answering": {
+        "datasets": ["FAVA_chatgpt", "FAVA_llama", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"],
+        "scores": ["SelfCheckGPT", "SAC3", "LMvsLM"]
+    },
+    "summarization": {
+        "datasets": ["HaluEval_summarization_data", "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human"],
+        "scores": ["AlignScorer", "ScaleScorer"]
+    }
+}
 
 entry = {}
-for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_InstructGPT", "FactScore_ChatGPT", "FactScore_PerplexityAI", "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec", "HaluEval_dialogue_data", "HaluEval_qa_data", "HaluEval_summarization_data", "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human"]: #,
-    entry[dataset] = {}
-    for score in ["SelfCheckGPT", "SAC3", "LMvsLM", "AlignScorer", "ScaleScorer"]:
-     #  "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
-        if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
-            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
-        else:
-            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data.csv")
-        if "PHD" in dataset:
-            print(f"Dataset name: {dataset_names_phd[dataset]}.")
-        else:
-            print(f"Dataset name: {dataset}.")
-        method = score
-        benchmark = dataset.split("/")[-1].split("_")[0]
-        try:
-            df = get_data(path_to_df, method, benchmark)
-        except Exception as e:
-            print(f"Error: {e}")
-            continue
-        for col in config[method]["columns"]:
-            accuracy, precision, recall, f1_score_val, best_threshold, gmean, hall_samples = get_optimal_thresholds(df["labels"], df[col], method, benchmark)
+for task in ["text_generation", "question_answering", "summarization"]:
+    entry[task] = {}
 
-            entry[dataset][col] = {"accuracy": round(accuracy, 2), "precision":  round(precision,2), "recall":  round(recall, 2), "f1_score":  round(f1_score_val, 2), "best_threshold": best_threshold, "geom_mean": gmean, "hall_samples": round(hall_samples, 2)}
-            # save to file
+    for score in all_tasks_data[task]["scores"]:
 
-save_to_json("outputs/results_full.json", entry)
+        for col in config[score]["columns"]:
+            entry[task][col] = {}
+            all_predictions_per_task_and_score = []
+            all_labels_per_task_and_score = []
+            for dataset in all_tasks_data[task]["datasets"]:
+                if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
+                    path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
+                else:
+                    path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data.csv")
+                if "PHD" in dataset:
+                    print(f"Dataset name: {dataset_names_phd[dataset]}.")
+                else:
+                    print(f"Dataset name: {dataset}.")
+
+                benchmark = dataset.split("/")[-1].split("_")[0]
+                try:
+                    df = get_data(path_to_df, score, benchmark)
+                except Exception as e:
+                    print(f"Error: {e}")
+                    continue
+
+                labels_dataset, predictions_dataset = get_inputs(df["labels"], df[col], score, benchmark)
+
+                all_predictions_per_task_and_score.append(predictions_dataset)
+                all_labels_per_task_and_score.append(labels_dataset)
+
+            best_threshold, best_gmean = find_optimal_threshold(all_labels_per_task_and_score, all_predictions_per_task_and_score)
+
+            entry[task][col] = {
+                "best_threshold": best_threshold,
+                "best_gmean": best_gmean
+            }
+
+            for ind, dataset in enumerate(all_tasks_data[task]["datasets"]):
+                accuracy, precision, recall, f1_score_val, best_threshold, gmean, hall_samples = get_optimal_thresholds(all_labels_per_task_and_score[ind], all_predictions_per_task_and_score[ind], best_threshold)
+
+                entry[task][col][dataset] = {"accuracy": round(accuracy, 2), "precision":  round(precision,2), "recall":  round(recall, 2), "f1_score":  round(f1_score_val, 2), "best_threshold": best_threshold, "geom_mean": gmean, "hall_samples": round(hall_samples, 2)}
+
+
+save_to_json("outputs/results_per_task.json", entry)

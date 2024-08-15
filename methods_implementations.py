@@ -512,7 +512,7 @@ class ScaleScorer(Methods):
         if row[("generations")] and row[("references")]:
 
 
-            results = self.scorer.score(premise=[row["references"]], hypothesis=[sentences])
+            results = (self.scorer.score(premise=[row["references"]], hypothesis=[sentences]))
             results_xl = self.scorer_xl.score(premise=[row["references"]], hypothesis=[sentences])
 
             output_predictions['ScaleScorer-large'] = sum(results)/len(results)

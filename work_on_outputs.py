@@ -210,10 +210,19 @@ def get_data(path_to_df, method, benchmark):
     #print(f"The size of the dataset is {df.shape[0]}")
     # drop duplicates
     df["labels"] = df["labels"].apply(config_benchmarks[benchmark]["transformation_first"])
-    na_free = df.dropna(subset=config[method]["columns"]+["labels"])
+    print(f"The size of the dataset is {df.shape[0]}")
+    current_data_no_na = df.dropna(subset=["generations", "labels"])
+    print(f"The size of the dataset after dropping NA's is {current_data_no_na.shape[0]}")
+
+    try:
+        duplicates_free = current_data_no_na.drop_duplicates(subset=["query", "generations"])
+    except KeyError:
+        duplicates_free = current_data_no_na.drop_duplicates(subset=["references", "generations"])
+
+    #na_free = df.dropna(subset=config[method]["columns"]+["labels"])
     #print(f"The size of the dataset after dropping NA's is {na_free.shape[0]}")
     #print(f"Dropped: {df[~df.index.isin(na_free.index)]['generations']}")
-    duplicates_free = na_free.drop_duplicates(subset=['generations'], keep='first')
+    #duplicates_free = na_free.drop_duplicates(subset=['generations'], keep='first')
     print(f"The size of the dataset is after removing duplicates: {duplicates_free.shape[0]}")
     # get number of samples with labels==1
 
@@ -221,7 +230,7 @@ def get_data(path_to_df, method, benchmark):
     return duplicates_free
 
 
-def calculate_correlation(numerical_labels, predictions):
+def calculate_correlation(numerical_labels, predictions, benchmark, method, col_name):
     """
     Calculate Pearson and Spearman correlation coefficients between two columns of a DataFrame.
 
@@ -234,6 +243,15 @@ def calculate_correlation(numerical_labels, predictions):
     - pearson_corr: float, Pearson correlation coefficient
     - spearman_corr: float, Spearman correlation coefficient
     """
+
+    reference_binary_int = config_benchmarks[benchmark]["reference_binary"]
+    if not reference_binary_int:
+        numerical_labels = numerical_labels.apply(config_benchmarks[benchmark]["transformation_labels"])
+
+    # print number of labels==1
+    print(f"Number of samples with labels==1: {numerical_labels[numerical_labels == 1].shape[0]}")
+    predictions = predictions.apply(config[method]["transformation"])
+
     # Calculate Pearson correlation coefficient
     pearson_corr, _ = pearsonr(numerical_labels, predictions)
 
@@ -384,14 +402,13 @@ def plot_scatter(df, ref_col, column1, column2):
     plt.grid(True)
     plt.show()
 
-
-for score in ["SAC3"]:
-    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w",
-                    "FactScore_PerplexityAI"]:  # "FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec" "FactScore_InstructGPT", "FactScore_ChatGPT", "BAMBOO_abshallu_4k",  "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"
+df_all = pd.DataFrame()
+for score in ["AlignScorer", "ScaleScorer"]:
+    for dataset in ["ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human"]:  #"FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT" "FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"  "BAMBOO_abshallu_4k",  "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", , "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"
         if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
             path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
         else:
-            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_new_starling.csv")
+            path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data.csv")
         if "PHD" in dataset:
             print(f"Dataset name: {dataset_names_phd[dataset]}.")
         else:
@@ -399,6 +416,7 @@ for score in ["SAC3"]:
         method = score
         benchmark = dataset.split("/")[-1].split("_")[0]
         df = get_data(path_to_df, method, benchmark)
+        df_all = pd.concat([df_all, df], ignore_index=True)
 
 
             # correct_passages = df.loc[df["labels"] == 0, "query"].tolist()
@@ -424,58 +442,58 @@ for score in ["SAC3"]:
             # plot_scatter(df, "labels", "SefCheckGPT_max_ngram", "SefCheckGPT_max_ngram_original")
             # plot_boxplots_for_non_binary(df["labels"], df["SefCheckGPT_max_ngram"], "SefCheckGPT_max_ngram", path.split("/")[-1], predictions2=df["SefCheckGPT_max_ngram_original"], col_name2="SefCheckGPT_max_ngram")
 
-        for pred_col in config[method]["columns"]:
-            if "labels" not in df.columns or pred_col not in df.columns:
-                raise ValueError("Specified columns not found in the DataFrame.")
+    for pred_col in config[method]["columns"]:
+        if "labels" not in df.columns or pred_col not in df.columns:
+            raise ValueError("Specified columns not found in the DataFrame.")
 
-            else:
+        else:
 
-                #pearson, spearman = calculate_correlation(df["labels"], df[pred_col])
-                #print(f"Pearson correlation between labels and {pred_col}: {pearson}")
-                #print(f"Spearmann correlation between labels and {pred_col}: {spearman}")
-                rocauc = calculate_aucroc(df["labels"], df[pred_col], benchmark, method)
-                try:
-                    print(f"ROC-AUC score between labels and {pred_col}: {round(rocauc, 2)}")
-                except:
-                    print(f"ROC-AUC score between labels and {pred_col}: {rocauc}")
+            pearson, spearman = calculate_correlation(df["labels"], df[pred_col], benchmark, method, pred_col)
+            print(f"Pearson correlation between labels and {pred_col}: {pearson}")
+            print(f"Spearmann correlation between labels and {pred_col}: {spearman}")
+            rocauc = calculate_aucroc(df["labels"], df[pred_col], benchmark, method)
+            try:
+                print(f"ROC-AUC score between labels and {pred_col}: {round(rocauc, 3)}")
+            except:
+                print(f"ROC-AUC score between labels and {pred_col}: {rocauc}")
 
-                #accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df["labels"], df[pred_col], benchmark, method, pred_col)
-                #print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
-                #print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
-                #print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
-                #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
-                #plot_boxplots_for_non_binary(df["labels"], df[pred_col], pred_col, path.split("/")[-1])
-                print("-"*50)
+            #accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df["labels"], df[pred_col], benchmark, method, pred_col)
+            #print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
+            #print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
+            #print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
+            #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
+            #plot_boxplots_for_non_binary(df["labels"], df[pred_col], pred_col, path.split("/")[-1])
+            print("-"*50)
 
-        # if benchmark == "FactScore":
-        #     df["categories"] = df["cat"].apply(lambda x: x.split(",")[0].replace("[", "").replace("'", ""))
-        #     categories = df["categories"].unique()
-        #
-        #
-        #     for category in categories:
-        #         df_subset = df[df["categories"] == category]
-        #         print(f"Dataset name: {dataset} {category}")
-        #         print(f"The size of the dataset is {df_subset.shape[0]}")
-        #
-        #         for pred_col in config[method]["columns"]:
-        #             if "labels" not in df_subset.columns or pred_col not in df_subset.columns:
-        #                 raise ValueError("Specified columns not found in the DataFrame.")
-        #             else:
-        #
-        #                 # pearson, spearman = calculate_correlation(df["labels"], df[pred_col])
-        #                 # print(f"Pearson correlation between labels and {pred_col}: {pearson}")
-        #                 # print(f"Spearmann correlation between labels and {pred_col}: {spearman}")
-        #                 rocauc = calculate_aucroc(df_subset["labels"], df_subset[pred_col], benchmark, method)
-        #                 try:
-        #                     print(f"ROC-AUC score between labels and {pred_col}: {round(rocauc, 2)}")
-        #                 except:
-        #                     print(f"ROC-AUC score between labels and {pred_col}: {rocauc}")
-        #                 accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df_subset["labels"], df_subset[pred_col],
-        #                                                                                      benchmark, method, pred_col)
-        #                 print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
-        #                 print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
-        #                 print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
-        #                 #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
-        #                 print("-" * 50)
-        #
+    # if benchmark == "FactScore":
+    #     df["categories"] = df["cat"].apply(lambda x: x.split(",")[0].replace("[", "").replace("'", ""))
+    #     categories = df["categories"].unique()
+    #
+    #
+    #     for category in categories:
+    #         df_subset = df[df["categories"] == category]
+    #         print(f"Dataset name: {dataset} {category}")
+    #         print(f"The size of the dataset is {df_subset.shape[0]}")
+    #
+    #         for pred_col in config[method]["columns"]:
+    #             if "labels" not in df_subset.columns or pred_col not in df_subset.columns:
+    #                 raise ValueError("Specified columns not found in the DataFrame.")
+    #             else:
+    #
+    #                 # pearson, spearman = calculate_correlation(df["labels"], df[pred_col])
+    #                 # print(f"Pearson correlation between labels and {pred_col}: {pearson}")
+    #                 # print(f"Spearmann correlation between labels and {pred_col}: {spearman}")
+    #                 rocauc = calculate_aucroc(df_subset["labels"], df_subset[pred_col], benchmark, method)
+    #                 try:
+    #                     print(f"ROC-AUC score between labels and {pred_col}: {round(rocauc, 2)}")
+    #                 except:
+    #                     print(f"ROC-AUC score between labels and {pred_col}: {rocauc}")
+    #                 accuracy, precision, recall, f1_score_val = calculate_binary_metrics(df_subset["labels"], df_subset[pred_col],
+    #                                                                                      benchmark, method, pred_col)
+    #                 print(f"Accuracy between labels and {pred_col}: {round(accuracy, 2)}")
+    #                 print(f"Precision between labels and {pred_col}: {round(precision, 2)}")
+    #                 print(f"Recall between labels and {pred_col}: {round(recall, 2)}")
+    #                 #print(f"F1 score between labels and {pred_col}: {round(f1_score_val, 2)}")
+    #                 print("-" * 50)
+    #
 

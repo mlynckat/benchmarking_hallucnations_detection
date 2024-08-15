@@ -140,7 +140,7 @@ config = {
                      "transformation": return_original},
     "LMvsLM": {"columns": ["LMvsLM_label"],
                "transformation": transform_factual_to_int},
-    "SAC3": {"columns": ["sc2_score", "sac3_q_score", "sac3_qm(falcon)_score", "sac3_qm(starling)_score"], #, "sac3_score(all)"
+    "SAC3": {"columns": ["sc2_score", "sac3_q_score", "sac3_qm(falcon)_score",  "sac3_qm(starling)_score", "sac3_score(all)"], #, "sac3_score(all)"
              "transformation": return_original},
     "AlignScorer": {"columns": ["AlignScore-base", "AlignScore-large"],
                     "transformation": invert_prob},
@@ -238,7 +238,7 @@ def plot_boxplots(df, col_name):
 
 for score in ["AlignScorer", "ScaleScorer"]: #
     df_aggregated = pd.DataFrame()
-    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"]: #  "FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
+    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"]: #"FAVA_llama", "FAVA_chatgpt", "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"   "SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", "BAMBOO_abshallu_4k", "BAMBOO_abshallu_16k", "BAMBOO_senhallu_4k", "BAMBOO_senhallu_16k", "ScreenEval_longformer", "ScreenEval_gpt4", "ScreenEval_human", "HaluEval_summarization_data", "HaluEval_dialogue_data", "HaluEval_qa_data"
         if score == "SelfCheckGPT" and "SelfCheckGPT" in dataset:
             path_to_df = os.path.join("outputs", dataset, f"{score}_updated_data_ngram.csv")
         else:
@@ -252,6 +252,7 @@ for score in ["AlignScorer", "ScaleScorer"]: #
             df["dataset_name"] = dataset_names_phd[dataset]
         df = df.dropna(subset=["labels"])
         df["labels"] = df["labels"].apply(lambda x: int(x>0.5))
+        print(f"Labels: {df['labels'].value_counts()}")
 
         df_aggregated = pd.concat([df_aggregated, df[config[method]["columns"] + ['dataset_name', 'labels']]], ignore_index=True)
 

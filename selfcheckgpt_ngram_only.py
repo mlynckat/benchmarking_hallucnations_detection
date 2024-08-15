@@ -80,8 +80,8 @@ def apply_qa(row):
         return output_predictions
 
 # read pandas dataframe from csv
-for dataset, model in zip(["PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT", "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"],
-                          ["chatgpt", "chatgpt", "chatgpt", "perplexityAI", "gpt3", "chatgpt", "chatgpt", "llama", "chatgpt", "chatgpt", "chatgpt", "chatgpt", "chatgpt" ]):
+for dataset, model in zip(["FactScore_InstructGPT"], #"PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", , "FactScore_ChatGPT", "FAVA_chatgpt", "FAVA_llama",  "FELM_math", "FELM_reasoning", "FELM_science", "FELM_wk", "FELM_writing_rec"
+                          ["gpt3"]): #"chatgpt", "chatgpt", "chatgpt", "perplexityAI", , "chatgpt", "chatgpt", "llama", "chatgpt", "chatgpt", "chatgpt", "chatgpt", "chatgpt"
     print(dataset, model)
     path_to_df = f"outputs/{dataset}/SelfCheckGPT_updated_data.csv"
 
@@ -98,14 +98,7 @@ for dataset, model in zip(["PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "Fac
     print(f"The size of the dataset is {df.shape[0]}")
     df[f"additional_samples_{model}"] = df[f"additional_samples_{model}"].apply(ast.literal_eval)
     #df['correct_answer'] = df['correct_answer'].apply(ast.literal_eval)
-
-
-
     selfcheck_ngram = SelfCheckNgram(n=1)
-
-
-
-
     updated_data = df.apply(lambda row: apply_ngram(row, model), axis=1)
 
 

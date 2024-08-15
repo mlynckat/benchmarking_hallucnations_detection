@@ -51,9 +51,9 @@ def join_with_extended():
 
 
 def join_with_add():
-    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI"]:  #, "FactScore_InstructGPT", "FactScore_ChatGPT" "FAVA_chatgpt", "FAVA_llama",
+    for dataset in ["SelfCheckGPT", "SelfCheckGPT_alternative", "PHD_wiki_1y", "PHD_wiki_10w", "PHD_wiki_1000w", "FactScore_PerplexityAI", "FactScore_InstructGPT", "FactScore_ChatGPT"]:  #,  "FAVA_chatgpt", "FAVA_llama",
         print(dataset)
-        path_to_sm = os.path.join("outputs", dataset, "SAC3_updated_data.csv")
+        path_to_sm = os.path.join("outputs", dataset, "SAC3_updated_data_original.csv")
         path_to_extended = os.path.join("outputs", dataset, "SAC3_updated_data_add.csv")
 
         df_sm = pd.read_csv(path_to_sm, encoding="utf-8")
@@ -71,21 +71,32 @@ def join_with_add():
         #sys.exit()
 
         if "sc2_vote_y" in df_updated.columns:
-            df_updated["sc2_vote"] = df_updated["sc2_vote_y"].apply(ast.literal_eval)
-            df_updated["sc2_score"] = df_updated["sc2_score_y"]
+            df_updated["sc2_vote"] = df_updated["sc2_vote_x"].apply(ast.literal_eval)
+            df_updated["sc2_score"] = df_updated["sc2_score_x"]
         else:
             df_updated["sc2_vote"] = df_updated["sc2_vote"].apply(ast.literal_eval)
+        if "PerplexityAI" in dataset:
+            df_updated["sc2_vote"] = df_updated["sc2_vote_y"].apply(ast.literal_eval)
+            df_updated["sc2_score"] = df_updated["sc2_score_y"]
+            df_updated["sac3_q_vote"] = df_updated["sac3_q_vote_y"].apply(ast.literal_eval)
+            df_updated["sac3_q_score"] = df_updated["sac3_q_score_y"]
+        else:
+            df_updated["sac3_q_vote"] = df_updated["sac3_q_vote_x"].apply(ast.literal_eval)
+            df_updated["sac3_q_score"] = df_updated["sac3_q_score_x"]
+        df_updated["sac3_q_vote"] = df_updated["sac3_q_vote"].apply(lambda x: x[-3:])
 
-        for col in ["sac3_q_score", "sac3_q_vote", "starling_responses", "starling_perb_responses", "sac3_qm(starling)_score", "sac3_qm(starling)_vote"]:
+        for col in ["starling_responses", "starling_perb_responses", "sac3_qm(starling)_score", "sac3_qm(starling)_vote"]: #"sac3_q_score", "sac3_q_vote",
             if "vote" in col:
                 df_updated[col + "_x"] = df_updated[col + "_x"].apply(ast.literal_eval)
                 df_updated[col + "_y"] = df_updated[col + "_y"].apply(ast.literal_eval)
+                df_updated[col + "_y"] = df_updated[col + "_y"].apply(lambda x: x[-3:])
             df_updated[col] = df_updated[col+"_y"]
+
 
         df_updated["sac3_vote(all)"] = df_updated["sc2_vote"] + df_updated["sac3_q_vote"] + df_updated["sac3_qm(starling)_vote"]
         df_updated["sac3_score(all)"] = df_updated["sac3_vote(all)"].apply(lambda x: sum(x) / len(x))
 
-        df_updated.to_csv(os.path.join("outputs", dataset, "SAC3_updated_data_new_starling.csv"), encoding="utf-8", index=False)
+        df_updated.to_csv(os.path.join("outputs", dataset, "SAC3_updated_data.csv"), encoding="utf-8", index=False)
 
 #join_with_extended()
 join_with_add()
